@@ -1,20 +1,1980 @@
-<script>document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{if(typeof DATA==='undefined')return;const NS='http://www.w3.org/2000/svg',svgs=[document.getElementById('chart'),document.getElementById('quantChart')].filter(Boolean),sync=svg=>{const years=[...new Set(DATA.quant.map(d=>+d.date.slice(0,4)).concat(DATA.events.map(d=>d.year)))].sort((a,b)=>a-b),min=years[0],max=years[years.length-1],marks=[...new Set(years.filter(y=>y%5===0).concat([min,max]))].sort((a,b)=>a-b),x=year=>235+(year-min)/(max-min||1)*910,observer=svg._axisObserver;observer?.disconnect();svg.querySelectorAll('line.grid').forEach(n=>{if(n.getAttribute('x1')===n.getAttribute('x2'))n.remove()});svg.querySelectorAll('text.tick').forEach(n=>{if(/^\d{4}$/.test(n.textContent))n.remove()});const vb=svg.getAttribute('viewBox').split(' ').map(Number),bottom=vb[1]+vb[3];marks.forEach(year=>{const line=document.createElementNS(NS,'line');line.dataset.axisYear=year;line.setAttribute('x1',x(year));line.setAttribute('x2',x(year));line.setAttribute('y1',42);line.setAttribute('y2',bottom-16);line.setAttribute('class','grid');svg.append(line);const text=document.createElementNS(NS,'text');text.dataset.axisYear=year;text.setAttribute('x',x(year));text.setAttribute('y',bottom-22);text.setAttribute('text-anchor','middle');text.setAttribute('class','tick');text.textContent=year;svg.append(text)});const next=new MutationObserver(()=>requestAnimationFrame(()=>sync(svg)));svg._axisObserver=next;next.observe(svg,{childList:true,subtree:true})};svgs.forEach(sync)},100));</script>
-<script>document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{if(typeof DATA==='undefined')return;const sync=()=>{const years=[...new Set(DATA.quant.map(d=>+d.date.slice(0,4)).concat(DATA.events.map(d=>d.year)))].sort((a,b)=>a-b),min=years[0],max=years[years.length-1],marks=[...new Set(years.filter(y=>y%5===0).concat([min,max]))].sort((a,b)=>a-b),x=year=>235+(year-min)/(max-min||1)*910;[document.getElementById('chart'),document.getElementById('quantChart')].forEach(svg=>{if(!svg)return;svg.querySelectorAll('line[data-axis-year],text[data-axis-year]').forEach(n=>n.remove());const vb=svg.getAttribute('viewBox').split(' ').map(Number),bottom=vb[1]+vb[3];marks.forEach(year=>{const line=document.createElementNS('http://www.w3.org/2000/svg','line');line.dataset.axisYear=year;line.setAttribute('x1',x(year));line.setAttribute('x2',x(year));line.setAttribute('y1',42);line.setAttribute('y2',bottom-16);line.setAttribute('class','grid');svg.append(line);const text=document.createElementNS('http://www.w3.org/2000/svg','text');text.dataset.axisYear=year;text.setAttribute('x',x(year));text.setAttribute('y',bottom-22);text.setAttribute('text-anchor','middle');text.setAttribute('class','tick');text.textContent=year;svg.append(text)})})};sync()},100));</script>
-<style>text[data-axis-year]{font-size:10px}#quantChart,#chart{overflow:visible}</style>
-<script>document.addEventListener('DOMContentLoaded',()=>{const NS='http://www.w3.org/2000/svg',chart=document.getElementById('chart'),quant=document.getElementById('quantChart');if(!chart||!quant)return;let updating=false;const sync=()=>{if(updating||!window.DATA)return;const years=[...new Set(DATA.quant.map(d=>+d.date.slice(0,4)).concat(DATA.events.map(d=>d.year)))].sort((a,b)=>a-b),min=years[0],max=years[years.length-1],marks=[...new Set(years.filter(y=>y%5===0).concat([min,max]))].sort((a,b)=>a-b),x=year=>235+(year-min)/(max-min||1)*910;updating=true;[chart,quant].forEach(svg=>{svg.querySelectorAll('line[data-axis-year],text[data-axis-year]').forEach(node=>node.remove());const vb=svg.getAttribute('viewBox').split(' ').map(Number),bottom=vb[1]+vb[3];marks.forEach(year=>{const line=document.createElementNS(NS,'line');line.dataset.axisYear=year;line.setAttribute('x1',x(year));line.setAttribute('x2',x(year));line.setAttribute('y1',42);line.setAttribute('y2',bottom-16);line.setAttribute('class','grid');svg.append(line);const text=document.createElementNS(NS,'text');text.dataset.axisYear=year;text.setAttribute('x',x(year));text.setAttribute('y',bottom-22);text.setAttribute('text-anchor','middle');text.setAttribute('class','tick');text.textContent=year;svg.append(text)})});updating=false};const observer=new MutationObserver(()=>requestAnimationFrame(sync));observer.observe(chart,{childList:true,subtree:true});setTimeout(sync,100)});</script>
-<style>#quantViewport{height:auto!important;min-height:0!important;aspect-ratio:1180/330;overflow:hidden}#quantChart{height:100%!important;aspect-ratio:1180/330}</style>
-<style>#quantViewport,#timelineViewport{position:relative;background:#fff;z-index:0}#quantViewport{border-bottom:1px solid var(--line)}#timelineViewport{z-index:1}</style>
-<script>document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{const clean=()=>document.querySelectorAll('#quantChart title,#quantChart desc,#chart title,#chart desc').forEach(node=>node.remove());new MutationObserver(clean).observe(document.body,{childList:true,subtree:true});clean()},50));</script>
-<script>document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{const svg=document.getElementById('quantChart');if(!svg)return;const clean=()=>svg.querySelectorAll('title,desc').forEach(node=>node.remove());new MutationObserver(clean).observe(svg,{childList:true,subtree:true});clean()},20));</script>
-<script>document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>document.querySelectorAll('#quantChart title,#quantChart desc').forEach(node=>node.remove()),10));</script>
-<script>document.addEventListener('DOMContentLoaded',()=>setTimeout(()=>{const svg=document.getElementById('quantChart');if(!svg)return;const lock=()=>{const width=svg.clientWidth,height=svg.clientHeight;if(!width||!height)return;const view=`0 0 1180 ${Math.max(1,1180*height/width-2)}`;if(svg.getAttribute('viewBox')!==view)svg.setAttribute('viewBox',view);if(svg.getAttribute('preserveAspectRatio')!=='xMidYMin meet')svg.setAttribute('preserveAspectRatio','xMidYMin meet')};new MutationObserver(lock).observe(svg,{attributes:true,attributeFilter:['viewBox','preserveAspectRatio']});lock();window.addEventListener('resize',lock)},0));</script>
-<script>const keepQuantGuide=()=>{const quant=document.getElementById('quantChart');if(quant)quant.querySelectorAll('.qguide line').forEach(node=>node.setAttribute('y2','330'))};</script>
-<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>定量グラフ・出来事年表（インタラクティブ試作）</title><style>body{display:flex!important;flex-direction:column}body>h1,body>p,body>.toolbar,body>.metric-row,body>.tp-heading,body>#tpTags,body>#tpMode,body>.hint,body>.tp-dialog,body>#csvDialog{order:3}body>#wrap{order:1}body>.details{order:2}#wrap{position:relative;width:100%;overflow:visible}#quantViewport{height:33vh;min-height:210px;overflow:hidden}#quantViewport svg{width:100%;height:100%;min-width:0;border-bottom:0}#timelineViewport{height:calc(67vh - 12px);min-height:220px;overflow-y:auto;overflow-x:hidden;border-top:1px solid var(--line)}#timelineViewport svg{width:100%;min-width:0;background:white;border-top:0}</style>
+<!-- 年軸の目盛りを定量グラフと年表に同期する補助処理 -->
+<script>
+  document.addEventListener("DOMContentLoaded", () =>
+    setTimeout(() => {
+      if (typeof DATA === "undefined") return;
+      const NS = "http://www.w3.org/2000/svg",
+        svgs = [
+          document.getElementById("chart"),
+          document.getElementById("quantChart"),
+        ].filter(Boolean),
+        sync = (svg) => {
+          const years = [
+              ...new Set(
+                DATA.quant
+                  .map((d) => +d.date.slice(0, 4))
+                  .concat(DATA.events.map((d) => d.year)),
+              ),
+            ].sort((a, b) => a - b),
+            min = years[0],
+            max = years[years.length - 1],
+            marks = [
+              ...new Set(years.filter((y) => y % 5 === 0).concat([min, max])),
+            ].sort((a, b) => a - b),
+            x = (year) => 235 + ((year - min) / (max - min || 1)) * 910,
+            observer = svg._axisObserver;
+          observer?.disconnect();
+          svg.querySelectorAll("line.grid").forEach((n) => {
+            if (n.getAttribute("x1") === n.getAttribute("x2")) n.remove();
+          });
+          svg.querySelectorAll("text.tick").forEach((n) => {
+            if (/^\d{4}$/.test(n.textContent)) n.remove();
+          });
+          const vb = svg.getAttribute("viewBox").split(" ").map(Number),
+            bottom = vb[1] + vb[3];
+          marks.forEach((year) => {
+            const line = document.createElementNS(NS, "line");
+            line.dataset.axisYear = year;
+            line.setAttribute("x1", x(year));
+            line.setAttribute("x2", x(year));
+            line.setAttribute("y1", 42);
+            line.setAttribute("y2", bottom - 16);
+            line.setAttribute("class", "grid");
+            svg.append(line);
+            const text = document.createElementNS(NS, "text");
+            text.dataset.axisYear = year;
+            text.setAttribute("x", x(year));
+            text.setAttribute("y", bottom - 22);
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("class", "tick");
+            text.textContent = year;
+            svg.append(text);
+          });
+          const next = new MutationObserver(() =>
+            requestAnimationFrame(() => sync(svg)),
+          );
+          svg._axisObserver = next;
+          next.observe(svg, { childList: true, subtree: true });
+        };
+      svgs.forEach(sync);
+    }, 100),
+  );
+</script>
+<!-- 年軸の目盛りを再描画する補助処理 -->
+<script>
+  document.addEventListener("DOMContentLoaded", () =>
+    setTimeout(() => {
+      if (typeof DATA === "undefined") return;
+      const sync = () => {
+        const years = [
+            ...new Set(
+              DATA.quant
+                .map((d) => +d.date.slice(0, 4))
+                .concat(DATA.events.map((d) => d.year)),
+            ),
+          ].sort((a, b) => a - b),
+          min = years[0],
+          max = years[years.length - 1],
+          marks = [
+            ...new Set(years.filter((y) => y % 5 === 0).concat([min, max])),
+          ].sort((a, b) => a - b),
+          x = (year) => 235 + ((year - min) / (max - min || 1)) * 910;
+        [
+          document.getElementById("chart"),
+          document.getElementById("quantChart"),
+        ].forEach((svg) => {
+          if (!svg) return;
+          svg
+            .querySelectorAll("line[data-axis-year],text[data-axis-year]")
+            .forEach((n) => n.remove());
+          const vb = svg.getAttribute("viewBox").split(" ").map(Number),
+            bottom = vb[1] + vb[3];
+          marks.forEach((year) => {
+            const line = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "line",
+            );
+            line.dataset.axisYear = year;
+            line.setAttribute("x1", x(year));
+            line.setAttribute("x2", x(year));
+            line.setAttribute("y1", 42);
+            line.setAttribute("y2", bottom - 16);
+            line.setAttribute("class", "grid");
+            svg.append(line);
+            const text = document.createElementNS(
+              "http://www.w3.org/2000/svg",
+              "text",
+            );
+            text.dataset.axisYear = year;
+            text.setAttribute("x", x(year));
+            text.setAttribute("y", bottom - 22);
+            text.setAttribute("text-anchor", "middle");
+            text.setAttribute("class", "tick");
+            text.textContent = year;
+            svg.append(text);
+          });
+        });
+      };
+      sync();
+    }, 100),
+  );
+</script>
+<!-- 年軸表示とSVGの見た目を調整する補助スタイル -->
 <style>
-:root{color-scheme:light;--fg:#223044;--muted:#445268;--line:#d8e0ea;--surface:#f7f9fc;--bubble:#fffdf5;--event:#466a8a}*{box-sizing:border-box}body{margin:0;padding:18px;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN",Meiryo,sans-serif;color:var(--fg);background:var(--surface)}h1{font-size:20px;margin:0 0 8px}p{margin:5px 0;color:var(--muted);font-size:13px}.controls{display:flex;flex-direction:column;gap:7px;align-items:flex-start;margin:14px 0 8px}.export{display:flex;gap:6px}.export button{font:inherit;padding:4px 8px}.control-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.event-card .source{display:block;margin-top:3px}label{font-size:13px}select{padding:6px 9px;border:1px solid var(--line);border-radius:5px;background:white;color:var(--fg)}#wrap{overflow-x:auto}svg{display:block;width:100%;min-width:760px;height:auto;background:white;border:1px solid var(--line)}.axis{stroke:#9aa8b8;stroke-width:1}.grid{stroke:#e4e9ef;stroke-width:1}.qline{fill:none;stroke:#2b6cb0;stroke-width:2.5}.qarea{fill:#2b6cb0;opacity:.12}.event{stroke:white;stroke-width:2;cursor:pointer}.event:hover{filter:brightness(.8)}.event.pinned{filter:brightness(.68);stroke:#1f2937;stroke-width:2.5}.turn{stroke:#b45309;stroke-width:1;stroke-dasharray:4 4}.turntext{fill:#9a5b09;font-size:11px}.bubble{stroke-width:1.5;stroke-width:1.2;filter:drop-shadow(0 2px 2px #0002);cursor:pointer}.bubble.pinned{stroke:#b45309;stroke-width:2}.connector{stroke:#b08a42;stroke-width:1;stroke-dasharray:3 2;pointer-events:none}.bubbleclose{font-size:16px;font-weight:600;fill:#8a5a13;cursor:pointer}.bubbletitle{font-size:11px;font-weight:600;fill:var(--fg)}.bubbledetail{font-size:10px;fill:#3f4b59}.bubbleclose{user-select:none}.lane-label{font-size:11px}.lane-label.selected{font-weight:700}.template-link{color:var(--accent)}.tick{font-size:10px;fill:#445268}.hint{font-size:12px;color:#445268}.details{margin-top:10px;padding:10px 12px;border-top:1px solid var(--line);background:white}.details h2{font-size:14px;margin:0 0 7px}.event-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:7px}.event-card{padding:7px 9px;border-left:3px solid #466a8a;background:#f4f7fa;font-size:12px}.event-card strong{display:block;font-size:12px}.event-card span{color:#3f4b59;font-size:11px}.tp-heading{font-size:11px;color:var(--muted);margin-top:3px}.tp-tags{display:flex;flex-wrap:wrap;gap:6px;margin:5px 0 8px}.tp-tag{display:inline-flex;font-size:10px;align-items:center;gap:5px;padding:3px 7px;border:1px solid #b08a42;border-radius:12px;background:#fff7df;color:#6e4a12;font-size:11px}.tp-dialog{display:flex;gap:6px;align-items:center;margin:4px 0;padding:6px;background:#fff7df;border:1px solid #d8c18a}.tp-dialog[hidden]{display:none}.tp-dialog input{font:inherit;padding:3px}.tp-dialog button{font:inherit;padding:3px 7px}.tp-tag button{border:0;background:transparent;color:#6e4a12;font-weight:700;cursor:pointer;padding:0 2px}
-@media print{body{background:#fff;padding:0}.toolbar,.tp-heading,.tp-tags,.tp-dialog,.details,.hint,.export,.metric-row,dialog{display:none!important}#wrap svg{border:0;min-width:0}}</style><script>document.addEventListener('DOMContentLoaded',()=>{const chart=document.getElementById('chart');if(!chart)return;const repair=()=>{const vb=chart.getAttribute('viewBox');if(!vb)return;const [,top,width,height]=vb.split(' ').map(Number),full=Number(chart.dataset.fullHeight)||(top?height+top:height);chart.dataset.fullHeight=String(full);const timelineTop=282,timelineHeight=Math.max(1,full-timelineTop);chart.setAttribute('viewBox',`0 ${timelineTop} ${width} ${timelineHeight}`);chart.setAttribute('preserveAspectRatio','xMidYMin meet');chart.style.height=`${Math.max(360,timelineHeight*chart.clientWidth/width+2)}px`;const axis=document.querySelector('#quantViewport .axis-mid');if(axis)axis.style.display='none';document.querySelectorAll('#quantChart .bubble,#quantChart .bubbletext,#quantChart .connector,#quantChart .event,#quantChart .lane-label').forEach(node=>node.remove());document.querySelectorAll('#quantChart text.tick').forEach(node=>{if(/^(1990|1995|2000|2005|2010)$/.test(node.textContent))node.setAttribute('y','275')})};setTimeout(()=>{new MutationObserver(repair).observe(chart,{childList:true,subtree:true});repair()},0)})</script>
-</style><style>#wrap{position:relative;width:100%;overflow:visible}#quantViewport{position:relative;height:33vh;min-height:210px;overflow:hidden}#quantViewport svg{width:100%;height:100%;min-width:0;border-bottom:0}#timelineViewport{height:calc(67vh - 12px);min-height:220px;overflow-y:auto;overflow-x:hidden;border-top:1px solid var(--line)}#timelineViewport svg{width:100%;min-width:0;background:white;border-top:0}</style><script>document.addEventListener('DOMContentLoaded',()=>{const original=document.getElementById('chart'),wrap=document.getElementById('wrap');if(!original||!wrap)return;const quant=document.createElement('div');quant.id='quantViewport';const quantChart=document.createElementNS('http://www.w3.org/2000/svg','svg');quantChart.id='quantChart';quantChart.setAttribute('aria-hidden','true');quant.append(quantChart);const axis=wrap.querySelector('.axis-mid');if(axis)quant.append(axis);const timeline=document.createElement('div');timeline.id='timelineViewport';wrap.insertBefore(quant,original);timeline.append(original);wrap.append(timeline);const sync=()=>{const vb=original.getAttribute('viewBox');if(!vb)return;const [,top,width,height]=vb.split(' ').map(Number),timelineTop=top||282,timelineHeight=Math.max(1,height-timelineTop);quantChart.innerHTML=original.innerHTML;quantChart.setAttribute('viewBox',`0 0 ${width} ${top||330}`);quantChart.setAttribute('preserveAspectRatio','xMidYMin meet');quantChart.style.width='100%';quantChart.style.height='100%';original.setAttribute('viewBox',`0 ${timelineTop} ${width} ${timelineHeight}`);original.setAttribute('preserveAspectRatio','xMidYMin meet');timeline.style.height=`calc(67vh - 12px)`;original.style.height=`${Math.max(360,timelineHeight*original.clientWidth/width)}px`;const qhit=[...original.querySelectorAll('rect')].find(node=>node.getAttribute('x')==='235'&&node.getAttribute('y')==='42');if(qhit&&!quantChart.dataset.hoverForwarder){quantChart.dataset.hoverForwarder='1';quantChart.addEventListener('mousemove',event=>{const from=quantChart.getBoundingClientRect(),to=original.getBoundingClientRect();qhit.dispatchEvent(new MouseEvent('mousemove',{clientX:to.left+(event.clientX-from.left)*to.width/from.width,clientY:to.top+event.clientY-from.top,bubbles:true}))});quantChart.addEventListener('mouseleave',()=>qhit.dispatchEvent(new MouseEvent('mouseleave',{bubbles:true})))} };new MutationObserver(sync).observe(original,{childList:true,subtree:true});sync();})</script>
-<style>body{padding:10px 14px}h1{font-size:18px;margin-bottom:3px}p{font-size:12px;margin:2px 0}.toolbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:8px 0 5px}.toolbar button,.export button{min-height:28px;padding:4px 10px;border:1px solid #aebccc;border-radius:5px;background:#fff;color:var(--fg);cursor:pointer}.toolbar button:hover,.export button:hover{background:#eef4f8}.export{align-items:center;gap:5px}.export span{font-size:12px;color:var(--muted)}.metric-row{display:inline-flex;gap:7px;align-items:center;margin:0 12px 4px 0}.metric-row label{font-weight:600}.tp-heading{display:inline;font-size:12px;font-weight:600}.tp-tags{display:inline-flex;margin:0 7px 4px 6px;vertical-align:middle}.tp-tag{font-size:10px;padding:2px 6px}.hint{font-size:11px}.tp-dialog{margin:3px 0;padding:4px}.details{margin-top:6px;padding:7px 10px}.details h2{font-size:13px;margin-bottom:4px}.event-list{gap:5px}.event-card{padding:5px 7px;font-size:11px}.event-card strong{font-size:11px}.event-card span{font-size:10px}@media (max-width:700px){body{padding:8px}.toolbar{gap:5px}.export span{display:none}.toolbar button,.export button{padding:4px 7px}.hint{display:block;margin:3px 0}}</style><h1>定量グラフと出来事年表（インタラクティブ試作）</h1><p>定量系列を切り替え、行を選ぶとその行の出来事を表示。出来事をクリックすると吹き出しを固定／解除できます。</p>
-<style>#wrap{position:relative}#wrap svg{height:clamp(430px,58vh,610px)}.axis-mid{position:absolute;top:39%;left:20%;right:3%;display:flex;justify-content:space-between;color:#445268;font-size:10px;pointer-events:none}.axis-mid span{transform:translateX(-50%)}@media(max-width:700px){#wrap svg{height:500px}.axis-mid{left:31%;right:4%;top:39%;font-size:9px}}</style><div class="toolbar"><button id="builderToggle" type="button">年表を作成</button><div class="export"><span>書き出し：</span><button id="exportSvg" type="button">svg</button><button id="exportPng" type="button">png</button><button id="exportPdf" type="button">pdf</button></div></div><dialog id="csvDialog"><h2>年表を作成</h2><div class="dialog-row"><label>出来事CSV<input id="eventCsv" type="file" accept=".csv,text/csv"></label><a id="eventTemplate" download="出来事_template.csv" href="#">ひな型をダウンロード</a></div><div class="dialog-row"><label>定量CSV<input id="quantCsv" type="file" accept=".csv,text/csv"></label><a id="quantTemplate" download="定量_template.csv" href="#">ひな型をダウンロード</a></div><button id="csvClose" type="button">閉じる</button></dialog><div class="metric-row"><label for="metric">定量表示</label><select id="metric"><option value="actual">ポケベル加入数（実数）</option><option value="index">ポケベル加入数（指数：1988年=100）</option></select></div><div class="tp-heading">転換点</div><div id="tpTags" class="tp-tags" aria-live="polite"></div><button id="tpMode" type="button">転換点を追加</button><div class="hint">クリック：出来事を固定／解除　｜　ドラッグ：吹き出し移動　｜　定量グラフにマウスオーバー：年・値</div><div id="tpDialog" class="tp-dialog" hidden><label>転換点ラベル<input id="tpLabel" type="text"></label><button id="tpSave" type="button">登録</button><button id="tpCancel" type="button">キャンセル</button></div>
-<style>.axis-mid{top:31%;height:14px;font-size:10px!important;line-height:1;font-weight:400}.axis-mid span{position:absolute;transform:translateX(-50%);font-size:10px!important;line-height:1;white-space:nowrap}.axis-mid span:nth-child(1){left:18.52%}.axis-mid span:nth-child(2){left:37.04%}.axis-mid span:nth-child(3){left:55.56%}.axis-mid span:nth-child(4){left:74.07%}.axis-mid span:nth-child(5){left:92.59%}@media(max-width:700px){.axis-mid{top:31%;font-size:9px!important}.axis-mid span{font-size:9px!important}}</style><div id="wrap"><svg id="chart" role="img" aria-label="ポケベル加入数と関連出来事の年表"></svg><div class="axis-mid" aria-hidden="true"><span>1990</span><span>1995</span><span>2000</span><span>2005</span><span>2010</span></div></div><div class="details" id="details" aria-live="polite"><h2>選択行の出来事</h2><div class="event-list"><span class="hint">下の行名をクリックしてください。</span></div></div><script>document.addEventListener('DOMContentLoaded',()=>{const chart=document.getElementById('chart');chart.addEventListener('pointerdown',event=>{const bubble=event.target.closest&&event.target.closest('g.bubbletext');if(!bubble||event.target.dataset.close)return;event.stopImmediatePropagation();bubble.dispatchEvent(new MouseEvent('click',{bubbles:true}))},true)})</script>
-<script>let DATA={"quant":[{"date":"1988-01-01","series":"ポケベル加入数","value":3519589},{"date":"1989-01-01","series":"ポケベル加入数","value":4246612},{"date":"1990-01-01","series":"ポケベル加入数","value":5082452},{"date":"1991-01-01","series":"ポケベル加入数","value":5911377},{"date":"1992-01-01","series":"ポケベル加入数","value":6688634},{"date":"1993-01-01","series":"ポケベル加入数","value":8063627},{"date":"1994-01-01","series":"ポケベル加入数","value":9353249},{"date":"1995-01-01","series":"ポケベル加入数","value":10610549},{"date":"1996-01-01","series":"ポケベル加入数","value":10074304},{"date":"1997-01-01","series":"ポケベル加入数","value":7115702},{"date":"1998-01-01","series":"ポケベル加入数","value":3765686},{"date":"1999-01-01","series":"ポケベル加入数","value":2071003},{"date":"2000-01-01","series":"ポケベル加入数","value":1439206},{"date":"2001-01-01","series":"ポケベル加入数","value":1136930},{"date":"2002-01-01","series":"ポケベル加入数","value":954986},{"date":"2003-01-01","series":"ポケベル加入数","value":804964},{"date":"2004-01-01","series":"ポケベル加入数","value":626274},{"date":"2005-01-01","series":"ポケベル加入数","value":502130},{"date":"2006-01-01","series":"ポケベル加入数","value":163227},{"date":"2007-01-01","series":"ポケベル加入数","value":160919},{"date":"2008-01-01","series":"ポケベル加入数","value":157702},{"date":"2009-01-01","series":"ポケベル加入数","value":152578},{"date":"2010-01-01","series":"ポケベル加入数","value":146193},{"date":"2011-01-01","series":"ポケベル加入数","value":150571},{"date":"2012-01-01","series":"ポケベル加入数","value":148542}],"events":[{"date":"1985-01-01","year":1985,"major":"制度・政策","minor":"通信制度","lane":"制度・政策｜通信制度","title":"通信自由化","detail":"音響だけでなく文字などの情報を送れる制度へ変更。","source":"無線呼び出し","url":"https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"},{"date":"1985-01-01","year":1985,"major":"サービス","minor":"ポケベル","lane":"サービス｜ポケベル","title":"新規参入と販売網の拡大","detail":"IDO、DDIの参入が始まり、販売ルートがスーパー、コンビニ、駅まで拡大。","source":"ポケベルの歴史","url":"https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"},{"date":"1988-01-01","year":1988,"major":"技術","minor":"ポケベル機能","lane":"技術｜ポケベル機能","title":"数字送信・表示","detail":"呼出音だけの端末から、数字で情報を受け取る端末へ。","source":"ポケベルの歴史","url":"https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"},{"date":"1989-01-01","year":1989,"major":"技術","minor":"回線","lane":"技術｜回線","title":"通信速度向上","detail":"表示できる情報量が増える基盤が整う。","source":"ポケベルの歴史","url":"https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"},{"date":"1990-01-01","year":1990,"major":"技術","minor":"ポケベル機能","lane":"技術｜ポケベル機能","title":"自由文字入力","detail":"カナのフリーメッセージ入力が可能になる。","source":"ポケベルの歴史","url":"https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"},{"date":"1992-01-01","year":1992,"major":"利用者・文化","minor":"言葉","lane":"利用者・文化｜言葉","title":"数字の語呂合わせが流行","detail":"限られた数字を使い、利用者が独自のコミュニケーションを作った。","source":"無線呼び出し","url":"https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"},{"date":"1993-01-01","year":1993,"major":"利用者・文化","minor":"メディア","lane":"利用者・文化｜メディア","title":"ドラマ『ポケベルが鳴らなくて』","detail":"テレビドラマと主題歌がヒットし、社会的な認知が広がる。","source":"無線呼び出し","url":"https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"},{"date":"1994-01-01","year":1994,"major":"利用者・文化","minor":"若者文化","lane":"利用者・文化｜若者文化","title":"女子高生の利用が拡大","detail":"ポケベルが若者のコミュニケーション手段として普及。","source":"ポケベルの歴史","url":"https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"},{"date":"1995-01-01","year":1995,"major":"競合サービス","minor":"PHS","lane":"競合サービス｜PHS","title":"PHSサービス開始","detail":"双方向通話やメールができ、料金も安いPHSへ利用者が移動。","source":"ポケベルの歴史","url":"https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"},{"date":"1995-01-01","year":1995,"major":"技術","minor":"ポケベル機能","lane":"技術｜ポケベル機能","title":"漢字表示","detail":"表現できる内容がさらに増える。","source":"ポケベルの歴史","url":"https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"},{"date":"1995-01-01","year":1995,"major":"社会的影響","minor":"インフラ","lane":"社会的影響｜インフラ","title":"メッセージ遅延・公衆電話故障","detail":"特定時間帯の輻輳と、発信用公衆電話の酷使が問題になる。","source":"無線呼び出し","url":"https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"},{"date":"1997-01-01","year":1997,"major":"競合サービス","minor":"携帯電話","lane":"競合サービス｜携帯電話","title":"ショートメール開始","detail":"双方向の文字通信が携帯電話で利用可能になる。","source":"ポケベルの歴史","url":"https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"},{"date":"1999-01-01","year":1999,"major":"競合サービス","minor":"携帯電話","lane":"競合サービス｜携帯電話","title":"iモード開始","detail":"携帯電話でインターネットサービスが使われ始める。","source":"ポケベルの歴史","url":"https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"},{"date":"1999-01-01","year":1999,"major":"サービス","minor":"ポケベル","lane":"サービス｜ポケベル","title":"基本料無料化","detail":"市場縮小のなかで料金施策を実施。","source":"ポケベルの歴史","url":"https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"},{"date":"2007-01-01","year":2007,"major":"サービス","minor":"ポケベル","lane":"サービス｜ポケベル","title":"NTTドコモがサービス終了","detail":"最大事業者がポケベルサービスを終了。","source":"ポケベルの歴史","url":"https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"},{"date":"2008-01-01","year":2008,"major":"サービス","minor":"ポケベル","lane":"サービス｜ポケベル","title":"特殊用途に限定","detail":"防災分野や無線LAN環境など、特殊用途で運用が続く。","source":"ポケベルの歴史","url":"https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"}],"turning_points":[{"date":"1995-01-01","label":"加入数ピーク\n1,061万件"},{"date":"1997-01-01","label":"急減期\n競合サービスへ移行"}],"palette":{"制度・政策":"#7B61A8","サービス":"#267C8B","技術":"#D07A28","利用者・文化":"#C45167","競合サービス":"#4776B4","社会的影響":"#6C7A3E"},"lanes":["制度・政策｜通信制度","サービス｜ポケベル","技術｜ポケベル機能","技術｜回線","利用者・文化｜言葉","利用者・文化｜メディア","利用者・文化｜若者文化","競合サービス｜PHS","社会的影響｜インフラ","競合サービス｜携帯電話"]};const svg=document.getElementById('chart'),metric=document.getElementById('metric'),details=document.getElementById('details'),NS='http://www.w3.org/2000/svg';let activeLane=null,hovered=null,pinned=new Set(),manual={},tpMode=false;const W=1180,left=235,right=1145,qTop=42,qBottom=255,laneTop=330,laneH=52,bubbleW=205,bubbleH=50;const years=[...new Set(DATA.quant.map(d=>+d.date.slice(0,4)).concat(DATA.events.map(d=>d.year)))].sort((a,b)=>a-b),minY=years[0],maxY=years[years.length-1],lanes=DATA.lanes,x=y=>left+(y-minY)/(maxY-minY)*(right-left),laneY=i=>laneTop+i*laneH;function el(n,a={},t){const x=document.createElementNS(NS,n);Object.entries(a).forEach(([k,v])=>x.setAttribute(k,v));if(t!=null)x.textContent=t;return x}function vals(){const v=DATA.quant.map(d=>d.value).filter(Number.isFinite);if(!v.length)return [];const base=v[0];return metric.value==='index'?DATA.quant.map(d=>({...d,value:d.value/base*100})):DATA.quant}function fmt(v){return metric.value==='index'?v.toFixed(0):new Intl.NumberFormat('ja-JP').format(Math.round(v))}function renderTpTags(){const box=document.getElementById('tpTags');box.innerHTML='';DATA.turning_points.forEach((tp,i)=>{const t=document.createElement('span');t.className='tp-tag';t.textContent=`${tp.date.slice(0,4)}｜${tp.label.replace('\n',' ')}`;const b=document.createElement('button');b.type='button';b.textContent='×';b.setAttribute('aria-label','転換点を削除');b.addEventListener('click',()=>{DATA.turning_points.splice(i,1);draw()});t.append(b);box.append(t)})}function draw(){svg.innerHTML='';document.getElementById('tpMode').textContent=tpMode?'グラフ上をクリック（入力待ち）':'転換点を追加';renderTpTags();const H=laneTop+lanes.length*laneH+85;svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.append(el('title',{},'定量グラフと出来事年表'));svg.append(el('desc',{},'上段は定量データ、下段はカテゴリ別の出来事。行クリックで行の全出来事、点クリックで吹き出し固定。'));[1990,1995,2000,2005,2010].filter(y=>y>=minY&&y<=maxY).forEach(y=>{svg.append(el('line',{x1:x(y),x2:x(y),y1:qTop,y2:laneY(lanes.length-1)+16,class:'grid'}));svg.append(el('text',{x:x(y),y:H-22,'text-anchor':'middle',class:'tick'},String(y)))});svg.append(el('line',{x1:left,x2:right,y1:qBottom,y2:qBottom,class:'axis'}));svg.append(el('line',{x1:left,x2:left,y1:qTop,y2:qBottom,class:'axis'}));const vv=vals(),vmax=(Math.max(...vv.map(d=>d.value))*1.08)||1,yq=v=>qBottom-(v/vmax)*(qBottom-qTop);[0,.5,1].forEach(t=>{const yy=qBottom-t*(qBottom-qTop);svg.append(el('line',{x1:left,x2:right,y1:yy,y2:yy,class:'grid'}));svg.append(el('text',{x:left-8,y:yy+4,'text-anchor':'end',class:'tick'},fmt(vmax*t)))});const path=vv.map((d,i)=>(i?'L':'M')+x(+d.date.slice(0,4))+','+yq(d.value)).join(' ');if(path){svg.append(el('path',{d:`M${x(minY)},${qBottom} ${path.slice(1)} L${x(maxY)},${qBottom} Z`,class:'qarea'}));svg.append(el('path',{d:path,class:'qline'}))}else{svg.append(el('text',{x:left+8,y:qTop+22,class:'turntext'},'定量データなし（出来事のみ表示）'))}svg.append(el('text',{x:left,y:qTop-17,class:'tick'},metric.value==='index'?'加入数指数（1988年=100）':'ポケベル加入数（人）'));DATA.turning_points.forEach((tp,ti)=>{const yy=+tp.date.slice(0,4),xx=x(yy);svg.append(el('line',{x1:xx,x2:xx,y1:qTop,y2:laneY(lanes.length-1)+16,class:'turn'}));svg.append(el('text',{x:xx+4,y:qTop+14+ti*20,class:'turntext'},(tp.label||String(yy)).replace('\n',' ')))});lanes.forEach((lane,i)=>{const y=laneY(i);svg.append(el('line',{x1:left,x2:right,y1:y+18,y2:y+18,class:'grid'}));const hit=el('rect',{x:0,y:y-20,width:left-5,height:40,fill:'transparent',cursor:'pointer'});hit.addEventListener('click',()=>{activeLane=activeLane===lane?null:lane;draw()});svg.append(el('text',{x:8,y:y+4,class:'lane-label'+(activeLane===lane?' selected':''),fill:DATA.palette[(lane.split('｜')[0])]||'currentColor'},lane));svg.append(hit)});const qhit=el('rect',{x:left,y:qTop,width:right-left,height:qBottom-qTop,fill:'transparent'});qhit.addEventListener('click',ev=>{if(!tpMode)return;const rr=svg.getBoundingClientRect(),sx=W/rr.width,plotX=(ev.clientX-rr.left)*sx,yr=Math.round(minY+Math.max(0,Math.min(1,(plotX-left)/(right-left)))*(maxY-minY));const dlg=document.getElementById('tpDialog'),inp=document.getElementById('tpLabel');dlg.hidden=false;inp.value='';inp.focus();document.getElementById('tpSave').onclick=()=>{const label=inp.value.trim();if(label){DATA.turning_points.push({date:`${yr}-01-01`,label});tpMode=false;document.getElementById('tpMode').textContent='転換点を追加';dlg.hidden=true;draw()}};document.getElementById('tpCancel').onclick=()=>{dlg.hidden=true}});qhit.addEventListener('mousemove',ev=>{const rr=svg.getBoundingClientRect(),yr=minY+(ev.clientX-rr.left-left/ W*rr.width)/(right-left)/ (rr.width/W)*(maxY-minY);if(!vv.length)return;const nearest=vv.reduce((a,b)=>Math.abs(+a.date.slice(0,4)-yr)<Math.abs(+b.date.slice(0,4)-yr)?a:b);svg.querySelectorAll('.qguide').forEach(n=>n.remove());const xx=x(+nearest.date.slice(0,4)),yy=yq(nearest.value);svg.append(el('line',{x1:xx,x2:xx,y1:qTop,y2:laneY(lanes.length-1)+16,class:'qguide turn'}));svg.append(el('text',{x:Math.min(right-150,xx+6),y:Math.max(qTop+15,yy-8),class:'qguide turntext'},`${nearest.date.slice(0,4)}年｜${fmt(nearest.value)}`))});qhit.addEventListener('mouseleave',()=>svg.querySelectorAll('.qguide').forEach(n=>n.remove()));svg.append(qhit);DATA.events.forEach((ev,i)=>{const cy=laneY(lanes.indexOf(ev.lane)),c=el('circle',{cx:x(ev.year),cy,r:7,class:'event'+(pinned.has(i)?' pinned':''),fill:DATA.palette[ev.major]||'#466a8a'});c.addEventListener('mouseenter',()=>{hovered=i;renderBubbles()});c.addEventListener('mouseleave',()=>{hovered=null;renderBubbles()});c.addEventListener('click',e=>{e.stopPropagation();pinned.has(i)?pinned.delete(i):pinned.add(i);renderBubbles()});svg.append(c)});renderBubbles();updateDetails()}function renderBubbles(){svg.querySelectorAll('.bubble,.bubbletext,.connector').forEach(n=>n.remove());const visible=DATA.events.map((e,i)=>({e,i})).filter(o=>o.i===hovered||pinned.has(o.i)||(activeLane&&o.e.lane===activeLane)),placed=[],lanePlaced={};visible.sort((a,b)=>x(a.e.year)-x(b.e.year));const wrap=(s,n)=>{const a=[];for(let i=0;i<s.length;i+=n)a.push(s.slice(i,i+n));return a};visible.forEach(({e,i})=>{const titleLines=wrap(`${e.year}｜${e.title}`,20),lines=wrap(e.detail,20), bw=250,bh=22+(titleLines.length+lines.length)*14, bx=Math.min(right-bw,Math.max(left,x(e.year)+8)), by=laneY(lanes.indexOf(e.lane))-bh-12;let p;for(let k=0;k<40&&!p;k++){const off=(k%2?1:-1)*Math.ceil(k/2)*32,c={x:bx,y:Math.max(qTop+2,Math.min(laneTop+lanes.length*laneH-bh,by+off)),w:bw,h:bh,lane:e.lane};if(!placed.some(z=>z.lane===e.lane&&c.x<z.x+z.w+5&&c.x+c.w+5>z.x&&c.y<z.y+z.h+5&&c.y+c.h+5>z.y))p=c}if(!p){const n=lanePlaced[e.lane]||0;lanePlaced[e.lane]=n+1;p={x:Math.max(left,Math.min(right-bw,left+(n%3)*((right-left-bw)/2))),y:Math.min(laneTop+lanes.length*laneH-bh,qTop+20+n*(bh+8)),w:bw,h:bh}}else{lanePlaced[e.lane]=(lanePlaced[e.lane]||0)+1}if(manual[i]){p.x=manual[i].x;p.y=manual[i].y}p.lane=e.lane;let guard=0;while(placed.some(z=>z.lane===e.lane&&p.x<z.x+z.w+5&&p.x+p.w+5>z.x&&p.y<z.y+z.h+5&&p.y+p.h+5>z.y)&&guard++<80){p.y+=p.h+8;if(p.y+p.h>laneTop+lanes.length*laneH){p.y=qTop+20;p.x=Math.max(left,p.x-p.w-12)}}placed.push(p);const dotX=x(e.year),dotY=laneY(lanes.indexOf(e.lane));const dotHits=(p)=>{const dx=dotX,dy=dotY;return dx>=p.x-8&&dx<=p.x+p.w+8&&dy>=p.y-8&&dy<=p.y+p.h+8};if(dotHits(p)&&!manual[i]){p.y=Math.max(qTop+2,dotY-p.h-20)}const corners=[[p.x,p.y],[p.x+p.w,p.y],[p.x,p.y+p.h],[p.x+p.w,p.y+p.h],[p.x+p.w/2,p.y],[p.x+p.w/2,p.y+p.h],[p.x,p.y+p.h/2],[p.x+p.w,p.y+p.h/2]],corner=corners.sort((a,b)=>(a[0]-dotX)**2+(a[1]-dotY)**2-(b[0]-dotX)**2-(b[1]-dotY)**2)[0];svg.append(el('line',{x1:dotX,y1:dotY,x2:corner[0],y2:corner[1],class:'connector'}));const g=el('g',{class:'bubbletext'});g.addEventListener('click',ev=>{if(ev.target.dataset.close)return;pinned.has(i)?pinned.delete(i):pinned.add(i);renderBubbles()});g.append(el('rect',{x:p.x,y:p.y,width:p.w,height:p.h,rx:5,class:'bubble'+(pinned.has(i)?' pinned':''),fill:DATA.palette[e.major]||'#466a8a','fill-opacity':pinned.has(i)?'.24':'.14',stroke:DATA.palette[e.major]||'#466a8a'}));titleLines.forEach((line,j)=>g.append(el('text',{x:p.x+8,y:p.y+16+j*14,class:'bubbletitle'},line)));lines.forEach((line,j)=>g.append(el('text',{x:p.x+8,y:p.y+16+titleLines.length*14+j*14,class:'bubbledetail'},line)));const close=el('text',{x:p.x+p.w-9,y:p.y+15,'text-anchor':'middle',class:'bubbleclose'},'×');close.dataset.close='1';close.setAttribute('aria-label','吹き出しを解除');close.addEventListener('click',ev=>{ev.stopPropagation();pinned.delete(i);renderBubbles()});g.append(close);g.addEventListener('pointerdown',ev=>{if(ev.target===close)return;const r=svg.getBoundingClientRect(),chartH=laneTop+lanes.length*laneH+85,sx=W/r.width,sy=chartH/r.height,ox=ev.clientX,oy=ev.clientY,startX=p.x,startY=p.y;g.setPointerCapture(ev.pointerId);const move=mv=>{const nx=Math.max(left,Math.min(right-p.w,startX+(mv.clientX-ox)*sx)),ny=Math.max(qTop,Math.min(chartH-p.h,startY+(mv.clientY-oy)*sy));g.setAttribute('transform',`translate(${nx-startX},${ny-startY})`);g.querySelector('rect').setAttribute('data-dragging','1');manual[i]={x:nx,y:ny}};const up=()=>{g.removeAttribute('transform');g.removeEventListener('pointermove',move);g.removeEventListener('pointerup',up);renderBubbles()};g.addEventListener('pointermove',move);g.addEventListener('pointerup',up)});svg.append(g)})}function updateDetails(){const list=details.querySelector('.event-list');list.innerHTML='';if(!activeLane){details.querySelector('h2').textContent='選択行の出来事';list.innerHTML='<span class="hint">下の行名をクリックすると、その行の出来事がすべて表示されます。</span>';return}details.querySelector('h2').textContent=activeLane+'｜出来事一覧';DATA.events.filter(e=>e.lane===activeLane).forEach(e=>{const c=document.createElement('div');c.className='event-card';c.style.background=(DATA.palette[e.major]||'#466a8a')+'22';c.style.borderLeftColor=DATA.palette[e.major]||'#466a8a';c.innerHTML=`<strong>${e.year}｜${e.title}</strong><span>${e.detail}</span><span class="source">出典：${e.source||'未入力'}${e.url?`｜<a href="${e.url}" target="_blank" rel="noreferrer">URL</a>`:''}</span>`;list.append(c)})}function csvRows(txt){const lines=txt.replace(/\r/g,'').split('\n').filter(Boolean),head=lines.shift().split(',').map(v=>v.trim());return lines.map(line=>{const vals=line.split(',');return Object.fromEntries(head.map((h,i)=>[h,(vals[i]||'').trim()]))})}function loadCsv(file,type){const rd=new FileReader();rd.onload=()=>{const rows=csvRows(rd.result);if(type==='event'){DATA.events=rows.map(r=>({year:+(r.year||r.年),date:(r.date||`${r.year||r.年}-01-01`),major:r.major||r.大分類||'',minor:r.minor||r.小分類||'',lane:r.lane||`${r.major||r.大分類}｜${r.minor||r.小分類}`,title:r.title||r.出来事||'',detail:r.detail||r.説明||'',source:r.source||r.出典||'',url:r.url||''}));DATA.lanes=[...new Set(DATA.events.map(e=>e.lane))]}else{DATA.quant=rows.map(r=>({date:(r.date||`${r.year||r.年}-01-01`),series:r.series||r.系列||r['系列名（全行同じ名前）']||'定量データ',value:+(r.value||r.値||r.加入数||0)}))}draw()};rd.readAsText(file,'UTF-8')}document.getElementById('eventCsv').addEventListener('change',e=>e.target.files[0]&&loadCsv(e.target.files[0],'event'));document.getElementById('quantCsv').addEventListener('change',e=>e.target.files[0]&&loadCsv(e.target.files[0],'quant'));document.getElementById('builderToggle').addEventListener('click',()=>document.getElementById('csvDialog').showModal());document.getElementById('csvClose').addEventListener('click',()=>document.getElementById('csvDialog').close());document.getElementById('tpMode').addEventListener('click',()=>{tpMode=!tpMode;document.getElementById('tpMode').textContent=tpMode?'グラフ上をクリック（入力待ち）':'転換点を追加'});function downloadBlob(name,blob){const a=document.createElement('a');a.download=name;a.href=URL.createObjectURL(blob);a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}function svgSource(){const clone=svg.cloneNode(true);const st=document.createElementNS(NS,'style');st.textContent=[...document.querySelectorAll('style')].map(x=>x.textContent).join('\n');clone.insertBefore(st,clone.firstChild);return new XMLSerializer().serializeToString(clone)}document.getElementById('exportSvg').addEventListener('click',()=>downloadBlob('timeline.svg',new Blob([svgSource()],{type:'image/svg+xml'})));document.getElementById('exportPng').addEventListener('click',()=>{const src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svgSource()),im=new Image();im.onload=()=>{const c=document.createElement('canvas'),r=svg.getBoundingClientRect(),scale=2;c.width=W*scale;c.height=(laneTop+lanes.length*laneH+85)*scale;c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(b=>downloadBlob('timeline.png',b),'image/png')};im.src=src});document.getElementById('exportPdf').addEventListener('click',()=>window.print());const csvLink=(name,text)=>{const a=document.getElementById(name);a.href=URL.createObjectURL(new Blob(['﻿'+text],{type:'text/csv;charset=utf-8'}))};csvLink('eventTemplate','年,大分類,小分類,出来事,説明,出典,URL\n1995,サービス,ポケベル,例,説明文,出典,https://example.com\n');csvLink('quantTemplate','年,値,系列名（全行同じ名前）\n1995,0,ポケベル加入数\n1996,0,ポケベル加入数\n');metric.addEventListener('change',draw);draw();</script>
+  text[data-axis-year] {
+    font-size: 10px;
+  }
+  #quantChart,
+  #chart {
+    overflow: visible;
+  }
+</style>
+<!-- 2つのSVGを同期し、定量グラフと年表を上下に分ける処理 -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const NS = "http://www.w3.org/2000/svg",
+      chart = document.getElementById("chart"),
+      quant = document.getElementById("quantChart");
+    if (!chart || !quant) return;
+    let updating = false;
+    const sync = () => {
+      if (updating || !window.DATA) return;
+      const years = [
+          ...new Set(
+            DATA.quant
+              .map((d) => +d.date.slice(0, 4))
+              .concat(DATA.events.map((d) => d.year)),
+          ),
+        ].sort((a, b) => a - b),
+        min = years[0],
+        max = years[years.length - 1],
+        marks = [
+          ...new Set(years.filter((y) => y % 5 === 0).concat([min, max])),
+        ].sort((a, b) => a - b),
+        x = (year) => 235 + ((year - min) / (max - min || 1)) * 910;
+      updating = true;
+      [chart, quant].forEach((svg) => {
+        svg
+          .querySelectorAll("line[data-axis-year],text[data-axis-year]")
+          .forEach((node) => node.remove());
+        const vb = svg.getAttribute("viewBox").split(" ").map(Number),
+          bottom = vb[1] + vb[3];
+        marks.forEach((year) => {
+          const line = document.createElementNS(NS, "line");
+          line.dataset.axisYear = year;
+          line.setAttribute("x1", x(year));
+          line.setAttribute("x2", x(year));
+          line.setAttribute("y1", 42);
+          line.setAttribute("y2", bottom - 16);
+          line.setAttribute("class", "grid");
+          svg.append(line);
+          const text = document.createElementNS(NS, "text");
+          text.dataset.axisYear = year;
+          text.setAttribute("x", x(year));
+          text.setAttribute("y", bottom - 22);
+          text.setAttribute("text-anchor", "middle");
+          text.setAttribute("class", "tick");
+          text.textContent = year;
+          svg.append(text);
+        });
+      });
+      updating = false;
+    };
+    const observer = new MutationObserver(() => requestAnimationFrame(sync));
+    observer.observe(chart, { childList: true, subtree: true });
+    setTimeout(sync, 100);
+  });
+</script>
+<style>
+  #quantViewport {
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 1180/330;
+    overflow: hidden;
+  }
+  #quantChart {
+    height: 100% !important;
+    aspect-ratio: 1180/330;
+  }
+</style>
+<style>
+  #quantViewport,
+  #timelineViewport {
+    position: relative;
+    background: #fff;
+    z-index: 0;
+  }
+  #quantViewport {
+    border-bottom: 1px solid var(--line);
+  }
+  #timelineViewport {
+    z-index: 1;
+  }
+</style>
+<script>
+  document.addEventListener("DOMContentLoaded", () =>
+    setTimeout(() => {
+      const clean = () =>
+        document
+          .querySelectorAll(
+            "#quantChart title,#quantChart desc,#chart title,#chart desc",
+          )
+          .forEach((node) => node.remove());
+      new MutationObserver(clean).observe(document.body, {
+        childList: true,
+        subtree: true,
+      });
+      clean();
+    }, 50),
+  );
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", () =>
+    setTimeout(() => {
+      const svg = document.getElementById("quantChart");
+      if (!svg) return;
+      const clean = () =>
+        svg.querySelectorAll("title,desc").forEach((node) => node.remove());
+      new MutationObserver(clean).observe(svg, {
+        childList: true,
+        subtree: true,
+      });
+      clean();
+    }, 20),
+  );
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", () =>
+    setTimeout(
+      () =>
+        document
+          .querySelectorAll("#quantChart title,#quantChart desc")
+          .forEach((node) => node.remove()),
+      10,
+    ),
+  );
+</script>
+<script>
+  document.addEventListener("DOMContentLoaded", () =>
+    setTimeout(() => {
+      const svg = document.getElementById("quantChart");
+      if (!svg) return;
+      const lock = () => {
+        const width = svg.clientWidth,
+          height = svg.clientHeight;
+        if (!width || !height) return;
+        const view = `0 0 1180 ${Math.max(1, (1180 * height) / width - 2)}`;
+        if (svg.getAttribute("viewBox") !== view)
+          svg.setAttribute("viewBox", view);
+        if (svg.getAttribute("preserveAspectRatio") !== "xMidYMin meet")
+          svg.setAttribute("preserveAspectRatio", "xMidYMin meet");
+      };
+      new MutationObserver(lock).observe(svg, {
+        attributes: true,
+        attributeFilter: ["viewBox", "preserveAspectRatio"],
+      });
+      lock();
+      window.addEventListener("resize", lock);
+    }, 0),
+  );
+</script>
+<script>
+  const keepQuantGuide = () => {
+    const quant = document.getElementById("quantChart");
+    if (quant)
+      quant
+        .querySelectorAll(".qguide line")
+        .forEach((node) => node.setAttribute("y2", "330"));
+  };
+</script>
+<!-- ページ本体: レイアウトと基本スタイル -->
+<!doctype html><meta charset="utf-8" /><meta
+  name="viewport"
+  content="width=device-width,initial-scale=1"
+/><title>定量グラフ・出来事年表（インタラクティブ試作）</title
+><style>
+  body {
+    display: flex !important;
+    flex-direction: column;
+  }
+  body > h1,
+  body > p,
+  body > .toolbar,
+  body > .metric-row,
+  body > .tp-heading,
+  body > #tpTags,
+  body > #tpMode,
+  body > .hint,
+  body > .tp-dialog,
+  body > #csvDialog {
+    order: 3;
+  }
+  body > #wrap {
+    order: 1;
+  }
+  body > .details {
+    order: 2;
+  }
+  #wrap {
+    position: relative;
+    width: 100%;
+    overflow: visible;
+  }
+  #quantViewport {
+    height: 33vh;
+    min-height: 210px;
+    overflow: hidden;
+  }
+  #quantViewport svg {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    border-bottom: 0;
+  }
+  #timelineViewport {
+    height: calc(67vh - 12px);
+    min-height: 220px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-top: 1px solid var(--line);
+  }
+  #timelineViewport svg {
+    width: 100%;
+    min-width: 0;
+    background: white;
+    border-top: 0;
+  }
+</style>
+<style>
+  :root {
+    color-scheme: light;
+    --fg: #223044;
+    --muted: #445268;
+    --line: #d8e0ea;
+    --surface: #f7f9fc;
+    --bubble: #fffdf5;
+    --event: #466a8a;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    margin: 0;
+    padding: 18px;
+    font-family:
+      -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", Meiryo,
+      sans-serif;
+    color: var(--fg);
+    background: var(--surface);
+  }
+  h1 {
+    font-size: 20px;
+    margin: 0 0 8px;
+  }
+  p {
+    margin: 5px 0;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    align-items: flex-start;
+    margin: 14px 0 8px;
+  }
+  .export {
+    display: flex;
+    gap: 6px;
+  }
+  .export button {
+    font: inherit;
+    padding: 4px 8px;
+  }
+  .control-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .event-card .source {
+    display: block;
+    margin-top: 3px;
+  }
+  label {
+    font-size: 13px;
+  }
+  select {
+    padding: 6px 9px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    background: white;
+    color: var(--fg);
+  }
+  #wrap {
+    overflow-x: auto;
+  }
+  svg {
+    display: block;
+    width: 100%;
+    min-width: 760px;
+    height: auto;
+    background: white;
+    border: 1px solid var(--line);
+  }
+  .axis {
+    stroke: #9aa8b8;
+    stroke-width: 1;
+  }
+  .grid {
+    stroke: #e4e9ef;
+    stroke-width: 1;
+  }
+  .qline {
+    fill: none;
+    stroke: #2b6cb0;
+    stroke-width: 2.5;
+  }
+  .qarea {
+    fill: #2b6cb0;
+    opacity: 0.12;
+  }
+  .event {
+    stroke: white;
+    stroke-width: 2;
+    cursor: pointer;
+  }
+  .event:hover {
+    filter: brightness(0.8);
+  }
+  .event.pinned {
+    filter: brightness(0.68);
+    stroke: #1f2937;
+    stroke-width: 2.5;
+  }
+  .turn {
+    stroke: #b45309;
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+  .turntext {
+    fill: #9a5b09;
+    font-size: 11px;
+  }
+  .bubble {
+    stroke-width: 1.5;
+    stroke-width: 1.2;
+    filter: drop-shadow(0 2px 2px #0002);
+    cursor: pointer;
+  }
+  .bubble.pinned {
+    stroke: #b45309;
+    stroke-width: 2;
+  }
+  .connector {
+    stroke: #b08a42;
+    stroke-width: 1;
+    stroke-dasharray: 3 2;
+    pointer-events: none;
+  }
+  .bubbleclose {
+    font-size: 16px;
+    font-weight: 600;
+    fill: #8a5a13;
+    cursor: pointer;
+  }
+  .bubbletitle {
+    font-size: 11px;
+    font-weight: 600;
+    fill: var(--fg);
+  }
+  .bubbledetail {
+    font-size: 10px;
+    fill: #3f4b59;
+  }
+  .bubbleclose {
+    user-select: none;
+  }
+  .lane-label {
+    font-size: 11px;
+  }
+  .lane-label.selected {
+    font-weight: 700;
+  }
+  .template-link {
+    color: var(--accent);
+  }
+  .tick {
+    font-size: 10px;
+    fill: #445268;
+  }
+  .hint {
+    font-size: 12px;
+    color: #445268;
+  }
+  .details {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-top: 1px solid var(--line);
+    background: white;
+  }
+  .details h2 {
+    font-size: 14px;
+    margin: 0 0 7px;
+  }
+  .event-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 7px;
+  }
+  .event-card {
+    padding: 7px 9px;
+    border-left: 3px solid #466a8a;
+    background: #f4f7fa;
+    font-size: 12px;
+  }
+  .event-card strong {
+    display: block;
+    font-size: 12px;
+  }
+  .event-card span {
+    color: #3f4b59;
+    font-size: 11px;
+  }
+  .tp-heading {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+  .tp-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin: 5px 0 8px;
+  }
+  .tp-tag {
+    display: inline-flex;
+    font-size: 10px;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 7px;
+    border: 1px solid #b08a42;
+    border-radius: 12px;
+    background: #fff7df;
+    color: #6e4a12;
+    font-size: 11px;
+  }
+  .tp-dialog {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin: 4px 0;
+    padding: 6px;
+    background: #fff7df;
+    border: 1px solid #d8c18a;
+  }
+  .tp-dialog[hidden] {
+    display: none;
+  }
+  .tp-dialog input {
+    font: inherit;
+    padding: 3px;
+  }
+  .tp-dialog button {
+    font: inherit;
+    padding: 3px 7px;
+  }
+  .tp-tag button {
+    border: 0;
+    background: transparent;
+    color: #6e4a12;
+    font-weight: 700;
+    cursor: pointer;
+    padding: 0 2px;
+  }
+  @media print {
+    body {
+      background: #fff;
+      padding: 0;
+    }
+    .toolbar,
+    .tp-heading,
+    .tp-tags,
+    .tp-dialog,
+    .details,
+    .hint,
+    .export,
+    .metric-row,
+    dialog {
+      display: none !important;
+    }
+    #wrap svg {
+      border: 0;
+      min-width: 0;
+    }
+  }
+</style>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const chart = document.getElementById("chart");
+    if (!chart) return;
+    const repair = () => {
+      const vb = chart.getAttribute("viewBox");
+      if (!vb) return;
+      const [, top, width, height] = vb.split(" ").map(Number),
+        full =
+          Number(chart.dataset.fullHeight) || (top ? height + top : height);
+      chart.dataset.fullHeight = String(full);
+      const timelineTop = 282,
+        timelineHeight = Math.max(1, full - timelineTop);
+      chart.setAttribute(
+        "viewBox",
+        `0 ${timelineTop} ${width} ${timelineHeight}`,
+      );
+      chart.setAttribute("preserveAspectRatio", "xMidYMin meet");
+      chart.style.height = `${Math.max(360, (timelineHeight * chart.clientWidth) / width + 2)}px`;
+      const axis = document.querySelector("#quantViewport .axis-mid");
+      if (axis) axis.style.display = "none";
+      document
+        .querySelectorAll(
+          "#quantChart .bubble,#quantChart .bubbletext,#quantChart .connector,#quantChart .event,#quantChart .lane-label",
+        )
+        .forEach((node) => node.remove());
+      document.querySelectorAll("#quantChart text.tick").forEach((node) => {
+        if (/^(1990|1995|2000|2005|2010)$/.test(node.textContent))
+          node.setAttribute("y", "275");
+      });
+    };
+    setTimeout(() => {
+      new MutationObserver(repair).observe(chart, {
+        childList: true,
+        subtree: true,
+      });
+      repair();
+    }, 0);
+  });
+</script>
+<style>
+  #wrap {
+    position: relative;
+    width: 100%;
+    overflow: visible;
+  }
+  #quantViewport {
+    position: relative;
+    height: 33vh;
+    min-height: 210px;
+    overflow: hidden;
+  }
+  #quantViewport svg {
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    border-bottom: 0;
+  }
+  #timelineViewport {
+    height: calc(67vh - 12px);
+    min-height: 220px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    border-top: 1px solid var(--line);
+  }
+  #timelineViewport svg {
+    width: 100%;
+    min-width: 0;
+    background: white;
+    border-top: 0;
+  }
+</style>
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const original = document.getElementById("chart"),
+      wrap = document.getElementById("wrap");
+    if (!original || !wrap) return;
+    const quant = document.createElement("div");
+    quant.id = "quantViewport";
+    const quantChart = document.createElementNS(
+      "http://www.w3.org/2000/svg",
+      "svg",
+    );
+    quantChart.id = "quantChart";
+    quantChart.setAttribute("aria-hidden", "true");
+    quant.append(quantChart);
+    const axis = wrap.querySelector(".axis-mid");
+    if (axis) quant.append(axis);
+    const timeline = document.createElement("div");
+    timeline.id = "timelineViewport";
+    wrap.insertBefore(quant, original);
+    timeline.append(original);
+    wrap.append(timeline);
+    const sync = () => {
+      const vb = original.getAttribute("viewBox");
+      if (!vb) return;
+      const [, top, width, height] = vb.split(" ").map(Number),
+        timelineTop = top || 282,
+        timelineHeight = Math.max(1, height - timelineTop);
+      quantChart.innerHTML = original.innerHTML;
+      quantChart.setAttribute("viewBox", `0 0 ${width} ${top || 330}`);
+      quantChart.setAttribute("preserveAspectRatio", "xMidYMin meet");
+      quantChart.style.width = "100%";
+      quantChart.style.height = "100%";
+      original.setAttribute(
+        "viewBox",
+        `0 ${timelineTop} ${width} ${timelineHeight}`,
+      );
+      original.setAttribute("preserveAspectRatio", "xMidYMin meet");
+      timeline.style.height = `calc(67vh - 12px)`;
+      original.style.height = `${Math.max(360, (timelineHeight * original.clientWidth) / width)}px`;
+      const qhit = [...original.querySelectorAll("rect")].find(
+        (node) =>
+          node.getAttribute("x") === "235" && node.getAttribute("y") === "42",
+      );
+      if (qhit && !quantChart.dataset.hoverForwarder) {
+        quantChart.dataset.hoverForwarder = "1";
+        quantChart.addEventListener("mousemove", (event) => {
+          const from = quantChart.getBoundingClientRect(),
+            to = original.getBoundingClientRect();
+          qhit.dispatchEvent(
+            new MouseEvent("mousemove", {
+              clientX:
+                to.left + ((event.clientX - from.left) * to.width) / from.width,
+              clientY: to.top + event.clientY - from.top,
+              bubbles: true,
+            }),
+          );
+        });
+        quantChart.addEventListener("mouseleave", () =>
+          qhit.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true })),
+        );
+      }
+    };
+    new MutationObserver(sync).observe(original, {
+      childList: true,
+      subtree: true,
+    });
+    sync();
+  });
+</script>
+<style>
+  body {
+    padding: 10px 14px;
+  }
+  h1 {
+    font-size: 18px;
+    margin-bottom: 3px;
+  }
+  p {
+    font-size: 12px;
+    margin: 2px 0;
+  }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 8px 0 5px;
+  }
+  .toolbar button,
+  .export button {
+    min-height: 28px;
+    padding: 4px 10px;
+    border: 1px solid #aebccc;
+    border-radius: 5px;
+    background: #fff;
+    color: var(--fg);
+    cursor: pointer;
+  }
+  .toolbar button:hover,
+  .export button:hover {
+    background: #eef4f8;
+  }
+  .export {
+    align-items: center;
+    gap: 5px;
+  }
+  .export span {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .metric-row {
+    display: inline-flex;
+    gap: 7px;
+    align-items: center;
+    margin: 0 12px 4px 0;
+  }
+  .metric-row label {
+    font-weight: 600;
+  }
+  .tp-heading {
+    display: inline;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .tp-tags {
+    display: inline-flex;
+    margin: 0 7px 4px 6px;
+    vertical-align: middle;
+  }
+  .tp-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+  .hint {
+    font-size: 11px;
+  }
+  .tp-dialog {
+    margin: 3px 0;
+    padding: 4px;
+  }
+  .details {
+    margin-top: 6px;
+    padding: 7px 10px;
+  }
+  .details h2 {
+    font-size: 13px;
+    margin-bottom: 4px;
+  }
+  .event-list {
+    gap: 5px;
+  }
+  .event-card {
+    padding: 5px 7px;
+    font-size: 11px;
+  }
+  .event-card strong {
+    font-size: 11px;
+  }
+  .event-card span {
+    font-size: 10px;
+  }
+  @media (max-width: 700px) {
+    body {
+      padding: 8px;
+    }
+    .toolbar {
+      gap: 5px;
+    }
+    .export span {
+      display: none;
+    }
+    .toolbar button,
+    .export button {
+      padding: 4px 7px;
+    }
+    .hint {
+      display: block;
+      margin: 3px 0;
+    }
+  }
+</style>
+<!-- 操作UIとCSV読み込みダイアログ -->
+<h1>定量グラフと出来事年表（インタラクティブ試作）</h1>
+<p>
+  定量系列を切り替え、行を選ぶとその行の出来事を表示。出来事をクリックすると吹き出しを固定／解除できます。
+</p>
+<style>
+  #wrap {
+    position: relative;
+  }
+  #wrap svg {
+    height: clamp(430px, 58vh, 610px);
+  }
+  .axis-mid {
+    position: absolute;
+    top: 39%;
+    left: 20%;
+    right: 3%;
+    display: flex;
+    justify-content: space-between;
+    color: #445268;
+    font-size: 10px;
+    pointer-events: none;
+  }
+  .axis-mid span {
+    transform: translateX(-50%);
+  }
+  @media (max-width: 700px) {
+    #wrap svg {
+      height: 500px;
+    }
+    .axis-mid {
+      left: 31%;
+      right: 4%;
+      top: 39%;
+      font-size: 9px;
+    }
+  }
+</style>
+<div class="toolbar">
+  <button id="builderToggle" type="button">年表を作成</button>
+  <div class="export">
+    <span>書き出し：</span><button id="exportSvg" type="button">svg</button
+    ><button id="exportPng" type="button">png</button
+    ><button id="exportPdf" type="button">pdf</button>
+  </div>
+</div>
+<dialog id="csvDialog">
+  <h2>年表を作成</h2>
+  <div class="dialog-row">
+    <label
+      >出来事CSV<input
+        id="eventCsv"
+        type="file"
+        accept=".csv,text/csv" /></label
+    ><a id="eventTemplate" download="出来事_template.csv" href="#"
+      >ひな型をダウンロード</a
+    >
+  </div>
+  <div class="dialog-row">
+    <label
+      >定量CSV<input id="quantCsv" type="file" accept=".csv,text/csv" /></label
+    ><a id="quantTemplate" download="定量_template.csv" href="#"
+      >ひな型をダウンロード</a
+    >
+  </div>
+  <button id="csvClose" type="button">閉じる</button>
+</dialog>
+<div class="metric-row">
+  <label for="metric">定量表示</label
+  ><select id="metric">
+    <option value="actual">ポケベル加入数（実数）</option>
+    <option value="index">ポケベル加入数（指数：1988年=100）</option>
+  </select>
+</div>
+<div class="tp-heading">転換点</div>
+<div id="tpTags" class="tp-tags" aria-live="polite"></div>
+<button id="tpMode" type="button">転換点を追加</button>
+<div class="hint">
+  クリック：出来事を固定／解除　｜　ドラッグ：吹き出し移動　｜　定量グラフにマウスオーバー：年・値
+</div>
+<div id="tpDialog" class="tp-dialog" hidden>
+  <label>転換点ラベル<input id="tpLabel" type="text" /></label
+  ><button id="tpSave" type="button">登録</button
+  ><button id="tpCancel" type="button">キャンセル</button>
+</div>
+<style>
+  .axis-mid {
+    top: 31%;
+    height: 14px;
+    font-size: 10px !important;
+    line-height: 1;
+    font-weight: 400;
+  }
+  .axis-mid span {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: 10px !important;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .axis-mid span:nth-child(1) {
+    left: 18.52%;
+  }
+  .axis-mid span:nth-child(2) {
+    left: 37.04%;
+  }
+  .axis-mid span:nth-child(3) {
+    left: 55.56%;
+  }
+  .axis-mid span:nth-child(4) {
+    left: 74.07%;
+  }
+  .axis-mid span:nth-child(5) {
+    left: 92.59%;
+  }
+  @media (max-width: 700px) {
+    .axis-mid {
+      top: 31%;
+      font-size: 9px !important;
+    }
+    .axis-mid span {
+      font-size: 9px !important;
+    }
+  }
+</style>
+<!-- グラフ本体: 上段の定量グラフと下段の出来事年表 -->
+<div id="wrap">
+  <svg
+    id="chart"
+    role="img"
+    aria-label="ポケベル加入数と関連出来事の年表"
+  ></svg>
+  <div class="axis-mid" aria-hidden="true">
+    <span>1990</span><span>1995</span><span>2000</span><span>2005</span
+    ><span>2010</span>
+  </div>
+</div>
+<div class="details" id="details" aria-live="polite">
+  <h2>選択行の出来事</h2>
+  <div class="event-list">
+    <span class="hint">下の行名をクリックしてください。</span>
+  </div>
+</div>
+<!-- グラフ上の吹き出し操作を補助するイベント処理 -->
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const chart = document.getElementById("chart");
+    chart.addEventListener(
+      "pointerdown",
+      (event) => {
+        const bubble =
+          event.target.closest && event.target.closest("g.bubbletext");
+        if (!bubble || event.target.dataset.close) return;
+        event.stopImmediatePropagation();
+        bubble.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      },
+      true,
+    );
+  });
+</script>
+<!-- 初期データと、画面描画・ユーザー操作の本体 -->
+<script>
+  // 年表で表示する定量データ・出来事・転換点・色・行
+  let DATA = {
+    quant: [
+      { date: "1988-01-01", series: "ポケベル加入数", value: 3519589 },
+      { date: "1989-01-01", series: "ポケベル加入数", value: 4246612 },
+      { date: "1990-01-01", series: "ポケベル加入数", value: 5082452 },
+      { date: "1991-01-01", series: "ポケベル加入数", value: 5911377 },
+      { date: "1992-01-01", series: "ポケベル加入数", value: 6688634 },
+      { date: "1993-01-01", series: "ポケベル加入数", value: 8063627 },
+      { date: "1994-01-01", series: "ポケベル加入数", value: 9353249 },
+      { date: "1995-01-01", series: "ポケベル加入数", value: 10610549 },
+      { date: "1996-01-01", series: "ポケベル加入数", value: 10074304 },
+      { date: "1997-01-01", series: "ポケベル加入数", value: 7115702 },
+      { date: "1998-01-01", series: "ポケベル加入数", value: 3765686 },
+      { date: "1999-01-01", series: "ポケベル加入数", value: 2071003 },
+      { date: "2000-01-01", series: "ポケベル加入数", value: 1439206 },
+      { date: "2001-01-01", series: "ポケベル加入数", value: 1136930 },
+      { date: "2002-01-01", series: "ポケベル加入数", value: 954986 },
+      { date: "2003-01-01", series: "ポケベル加入数", value: 804964 },
+      { date: "2004-01-01", series: "ポケベル加入数", value: 626274 },
+      { date: "2005-01-01", series: "ポケベル加入数", value: 502130 },
+      { date: "2006-01-01", series: "ポケベル加入数", value: 163227 },
+      { date: "2007-01-01", series: "ポケベル加入数", value: 160919 },
+      { date: "2008-01-01", series: "ポケベル加入数", value: 157702 },
+      { date: "2009-01-01", series: "ポケベル加入数", value: 152578 },
+      { date: "2010-01-01", series: "ポケベル加入数", value: 146193 },
+      { date: "2011-01-01", series: "ポケベル加入数", value: 150571 },
+      { date: "2012-01-01", series: "ポケベル加入数", value: 148542 },
+    ],
+    events: [
+      {
+        date: "1985-01-01",
+        year: 1985,
+        major: "制度・政策",
+        minor: "通信制度",
+        lane: "制度・政策｜通信制度",
+        title: "通信自由化",
+        detail: "音響だけでなく文字などの情報を送れる制度へ変更。",
+        source: "無線呼び出し",
+        url: "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97",
+      },
+      {
+        date: "1985-01-01",
+        year: 1985,
+        major: "サービス",
+        minor: "ポケベル",
+        lane: "サービス｜ポケベル",
+        title: "新規参入と販売網の拡大",
+        detail:
+          "IDO、DDIの参入が始まり、販売ルートがスーパー、コンビニ、駅まで拡大。",
+        source: "ポケベルの歴史",
+        url: "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html",
+      },
+      {
+        date: "1988-01-01",
+        year: 1988,
+        major: "技術",
+        minor: "ポケベル機能",
+        lane: "技術｜ポケベル機能",
+        title: "数字送信・表示",
+        detail: "呼出音だけの端末から、数字で情報を受け取る端末へ。",
+        source: "ポケベルの歴史",
+        url: "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html",
+      },
+      {
+        date: "1989-01-01",
+        year: 1989,
+        major: "技術",
+        minor: "回線",
+        lane: "技術｜回線",
+        title: "通信速度向上",
+        detail: "表示できる情報量が増える基盤が整う。",
+        source: "ポケベルの歴史",
+        url: "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html",
+      },
+      {
+        date: "1990-01-01",
+        year: 1990,
+        major: "技術",
+        minor: "ポケベル機能",
+        lane: "技術｜ポケベル機能",
+        title: "自由文字入力",
+        detail: "カナのフリーメッセージ入力が可能になる。",
+        source: "ポケベルの歴史",
+        url: "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html",
+      },
+      {
+        date: "1992-01-01",
+        year: 1992,
+        major: "利用者・文化",
+        minor: "言葉",
+        lane: "利用者・文化｜言葉",
+        title: "数字の語呂合わせが流行",
+        detail:
+          "限られた数字を使い、利用者が独自のコミュニケーションを作った。",
+        source: "無線呼び出し",
+        url: "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97",
+      },
+      {
+        date: "1993-01-01",
+        year: 1993,
+        major: "利用者・文化",
+        minor: "メディア",
+        lane: "利用者・文化｜メディア",
+        title: "ドラマ『ポケベルが鳴らなくて』",
+        detail: "テレビドラマと主題歌がヒットし、社会的な認知が広がる。",
+        source: "無線呼び出し",
+        url: "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97",
+      },
+      {
+        date: "1994-01-01",
+        year: 1994,
+        major: "利用者・文化",
+        minor: "若者文化",
+        lane: "利用者・文化｜若者文化",
+        title: "女子高生の利用が拡大",
+        detail: "ポケベルが若者のコミュニケーション手段として普及。",
+        source: "ポケベルの歴史",
+        url: "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html",
+      },
+      {
+        date: "1995-01-01",
+        year: 1995,
+        major: "競合サービス",
+        minor: "PHS",
+        lane: "競合サービス｜PHS",
+        title: "PHSサービス開始",
+        detail: "双方向通話やメールができ、料金も安いPHSへ利用者が移動。",
+        source: "ポケベルの歴史",
+        url: "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html",
+      },
+      {
+        date: "1995-01-01",
+        year: 1995,
+        major: "技術",
+        minor: "ポケベル機能",
+        lane: "技術｜ポケベル機能",
+        title: "漢字表示",
+        detail: "表現できる内容がさらに増える。",
+        source: "ポケベルの歴史",
+        url: "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html",
+      },
+      {
+        date: "1995-01-01",
+        year: 1995,
+        major: "社会的影響",
+        minor: "インフラ",
+        lane: "社会的影響｜インフラ",
+        title: "メッセージ遅延・公衆電話故障",
+        detail: "特定時間帯の輻輳と、発信用公衆電話の酷使が問題になる。",
+        source: "無線呼び出し",
+        url: "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97",
+      },
+      {
+        date: "1997-01-01",
+        year: 1997,
+        major: "競合サービス",
+        minor: "携帯電話",
+        lane: "競合サービス｜携帯電話",
+        title: "ショートメール開始",
+        detail: "双方向の文字通信が携帯電話で利用可能になる。",
+        source: "ポケベルの歴史",
+        url: "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html",
+      },
+      {
+        date: "1999-01-01",
+        year: 1999,
+        major: "競合サービス",
+        minor: "携帯電話",
+        lane: "競合サービス｜携帯電話",
+        title: "iモード開始",
+        detail: "携帯電話でインターネットサービスが使われ始める。",
+        source: "ポケベルの歴史",
+        url: "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html",
+      },
+      {
+        date: "1999-01-01",
+        year: 1999,
+        major: "サービス",
+        minor: "ポケベル",
+        lane: "サービス｜ポケベル",
+        title: "基本料無料化",
+        detail: "市場縮小のなかで料金施策を実施。",
+        source: "ポケベルの歴史",
+        url: "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html",
+      },
+      {
+        date: "2007-01-01",
+        year: 2007,
+        major: "サービス",
+        minor: "ポケベル",
+        lane: "サービス｜ポケベル",
+        title: "NTTドコモがサービス終了",
+        detail: "最大事業者がポケベルサービスを終了。",
+        source: "ポケベルの歴史",
+        url: "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html",
+      },
+      {
+        date: "2008-01-01",
+        year: 2008,
+        major: "サービス",
+        minor: "ポケベル",
+        lane: "サービス｜ポケベル",
+        title: "特殊用途に限定",
+        detail: "防災分野や無線LAN環境など、特殊用途で運用が続く。",
+        source: "ポケベルの歴史",
+        url: "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html",
+      },
+    ],
+    turning_points: [
+      { date: "1995-01-01", label: "加入数ピーク\n1,061万件" },
+      { date: "1997-01-01", label: "急減期\n競合サービスへ移行" },
+    ],
+    palette: {
+      "制度・政策": "#7B61A8",
+      サービス: "#267C8B",
+      技術: "#D07A28",
+      "利用者・文化": "#C45167",
+      競合サービス: "#4776B4",
+      社会的影響: "#6C7A3E",
+    },
+    lanes: [
+      "制度・政策｜通信制度",
+      "サービス｜ポケベル",
+      "技術｜ポケベル機能",
+      "技術｜回線",
+      "利用者・文化｜言葉",
+      "利用者・文化｜メディア",
+      "利用者・文化｜若者文化",
+      "競合サービス｜PHS",
+      "社会的影響｜インフラ",
+      "競合サービス｜携帯電話",
+    ],
+  };
+  const svg = document.getElementById("chart"),
+    metric = document.getElementById("metric"),
+    details = document.getElementById("details"),
+    NS = "http://www.w3.org/2000/svg";
+  let activeLane = null,
+    hovered = null,
+    pinned = new Set(),
+    manual = {},
+    tpMode = false;
+  const W = 1180,
+    left = 235,
+    right = 1145,
+    qTop = 42,
+    qBottom = 255,
+    laneTop = 330,
+    laneH = 52,
+    bubbleW = 205,
+    bubbleH = 50;
+  const years = [
+      ...new Set(
+        DATA.quant
+          .map((d) => +d.date.slice(0, 4))
+          .concat(DATA.events.map((d) => d.year)),
+      ),
+    ].sort((a, b) => a - b),
+    minY = years[0],
+    maxY = years[years.length - 1],
+    lanes = DATA.lanes,
+    x = (y) => left + ((y - minY) / (maxY - minY)) * (right - left),
+    laneY = (i) => laneTop + i * laneH;
+  function el(n, a = {}, t) {
+    const x = document.createElementNS(NS, n);
+    Object.entries(a).forEach(([k, v]) => x.setAttribute(k, v));
+    if (t != null) x.textContent = t;
+    return x;
+  }
+  function vals() {
+    const v = DATA.quant.map((d) => d.value).filter(Number.isFinite);
+    if (!v.length) return [];
+    const base = v[0];
+    return metric.value === "index"
+      ? DATA.quant.map((d) => ({ ...d, value: (d.value / base) * 100 }))
+      : DATA.quant;
+  }
+  function fmt(v) {
+    return metric.value === "index"
+      ? v.toFixed(0)
+      : new Intl.NumberFormat("ja-JP").format(Math.round(v));
+  }
+  function renderTpTags() {
+    const box = document.getElementById("tpTags");
+    box.innerHTML = "";
+    DATA.turning_points.forEach((tp, i) => {
+      const t = document.createElement("span");
+      t.className = "tp-tag";
+      t.textContent = `${tp.date.slice(0, 4)}｜${tp.label.replace("\n", " ")}`;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = "×";
+      b.setAttribute("aria-label", "転換点を削除");
+      b.addEventListener("click", () => {
+        DATA.turning_points.splice(i, 1);
+        draw();
+      });
+      t.append(b);
+      box.append(t);
+    });
+  }
+  // グラフ全体を描画する
+  function draw() {
+    svg.innerHTML = "";
+    document.getElementById("tpMode").textContent = tpMode
+      ? "グラフ上をクリック（入力待ち）"
+      : "転換点を追加";
+    renderTpTags();
+    const H = laneTop + lanes.length * laneH + 85;
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.append(el("title", {}, "定量グラフと出来事年表"));
+    svg.append(
+      el(
+        "desc",
+        {},
+        "上段は定量データ、下段はカテゴリ別の出来事。行クリックで行の全出来事、点クリックで吹き出し固定。",
+      ),
+    );
+    [1990, 1995, 2000, 2005, 2010]
+      .filter((y) => y >= minY && y <= maxY)
+      .forEach((y) => {
+        svg.append(
+          el("line", {
+            x1: x(y),
+            x2: x(y),
+            y1: qTop,
+            y2: laneY(lanes.length - 1) + 16,
+            class: "grid",
+          }),
+        );
+        svg.append(
+          el(
+            "text",
+            { x: x(y), y: H - 22, "text-anchor": "middle", class: "tick" },
+            String(y),
+          ),
+        );
+      });
+    svg.append(
+      el("line", {
+        x1: left,
+        x2: right,
+        y1: qBottom,
+        y2: qBottom,
+        class: "axis",
+      }),
+    );
+    svg.append(
+      el("line", { x1: left, x2: left, y1: qTop, y2: qBottom, class: "axis" }),
+    );
+    const vv = vals(),
+      vmax = Math.max(...vv.map((d) => d.value)) * 1.08 || 1,
+      yq = (v) => qBottom - (v / vmax) * (qBottom - qTop);
+    [0, 0.5, 1].forEach((t) => {
+      const yy = qBottom - t * (qBottom - qTop);
+      svg.append(
+        el("line", { x1: left, x2: right, y1: yy, y2: yy, class: "grid" }),
+      );
+      svg.append(
+        el(
+          "text",
+          { x: left - 8, y: yy + 4, "text-anchor": "end", class: "tick" },
+          fmt(vmax * t),
+        ),
+      );
+    });
+    const path = vv
+      .map(
+        (d, i) => (i ? "L" : "M") + x(+d.date.slice(0, 4)) + "," + yq(d.value),
+      )
+      .join(" ");
+    if (path) {
+      svg.append(
+        el("path", {
+          d: `M${x(minY)},${qBottom} ${path.slice(1)} L${x(maxY)},${qBottom} Z`,
+          class: "qarea",
+        }),
+      );
+      svg.append(el("path", { d: path, class: "qline" }));
+    } else {
+      svg.append(
+        el(
+          "text",
+          { x: left + 8, y: qTop + 22, class: "turntext" },
+          "定量データなし（出来事のみ表示）",
+        ),
+      );
+    }
+    svg.append(
+      el(
+        "text",
+        { x: left, y: qTop - 17, class: "tick" },
+        metric.value === "index"
+          ? "加入数指数（1988年=100）"
+          : "ポケベル加入数（人）",
+      ),
+    );
+    DATA.turning_points.forEach((tp, ti) => {
+      const yy = +tp.date.slice(0, 4),
+        xx = x(yy);
+      svg.append(
+        el("line", {
+          x1: xx,
+          x2: xx,
+          y1: qTop,
+          y2: laneY(lanes.length - 1) + 16,
+          class: "turn",
+        }),
+      );
+      svg.append(
+        el(
+          "text",
+          { x: xx + 4, y: qTop + 14 + ti * 20, class: "turntext" },
+          (tp.label || String(yy)).replace("\n", " "),
+        ),
+      );
+    });
+    lanes.forEach((lane, i) => {
+      const y = laneY(i);
+      svg.append(
+        el("line", {
+          x1: left,
+          x2: right,
+          y1: y + 18,
+          y2: y + 18,
+          class: "grid",
+        }),
+      );
+      const hit = el("rect", {
+        x: 0,
+        y: y - 20,
+        width: left - 5,
+        height: 40,
+        fill: "transparent",
+        cursor: "pointer",
+      });
+      hit.addEventListener("click", () => {
+        activeLane = activeLane === lane ? null : lane;
+        draw();
+      });
+      svg.append(
+        el(
+          "text",
+          {
+            x: 8,
+            y: y + 4,
+            class: "lane-label" + (activeLane === lane ? " selected" : ""),
+            fill: DATA.palette[lane.split("｜")[0]] || "currentColor",
+          },
+          lane,
+        ),
+      );
+      svg.append(hit);
+    });
+    const qhit = el("rect", {
+      x: left,
+      y: qTop,
+      width: right - left,
+      height: qBottom - qTop,
+      fill: "transparent",
+    });
+    qhit.addEventListener("click", (ev) => {
+      if (!tpMode) return;
+      const rr = svg.getBoundingClientRect(),
+        sx = W / rr.width,
+        plotX = (ev.clientX - rr.left) * sx,
+        yr = Math.round(
+          minY +
+            Math.max(0, Math.min(1, (plotX - left) / (right - left))) *
+              (maxY - minY),
+        );
+      const dlg = document.getElementById("tpDialog"),
+        inp = document.getElementById("tpLabel");
+      dlg.hidden = false;
+      inp.value = "";
+      inp.focus();
+      document.getElementById("tpSave").onclick = () => {
+        const label = inp.value.trim();
+        if (label) {
+          DATA.turning_points.push({ date: `${yr}-01-01`, label });
+          tpMode = false;
+          document.getElementById("tpMode").textContent = "転換点を追加";
+          dlg.hidden = true;
+          draw();
+        }
+      };
+      document.getElementById("tpCancel").onclick = () => {
+        dlg.hidden = true;
+      };
+    });
+    qhit.addEventListener("mousemove", (ev) => {
+      const rr = svg.getBoundingClientRect(),
+        yr =
+          minY +
+          ((ev.clientX - rr.left - (left / W) * rr.width) /
+            (right - left) /
+            (rr.width / W)) *
+            (maxY - minY);
+      if (!vv.length) return;
+      const nearest = vv.reduce((a, b) =>
+        Math.abs(+a.date.slice(0, 4) - yr) < Math.abs(+b.date.slice(0, 4) - yr)
+          ? a
+          : b,
+      );
+      svg.querySelectorAll(".qguide").forEach((n) => n.remove());
+      const xx = x(+nearest.date.slice(0, 4)),
+        yy = yq(nearest.value);
+      svg.append(
+        el("line", {
+          x1: xx,
+          x2: xx,
+          y1: qTop,
+          y2: laneY(lanes.length - 1) + 16,
+          class: "qguide turn",
+        }),
+      );
+      svg.append(
+        el(
+          "text",
+          {
+            x: Math.min(right - 150, xx + 6),
+            y: Math.max(qTop + 15, yy - 8),
+            class: "qguide turntext",
+          },
+          `${nearest.date.slice(0, 4)}年｜${fmt(nearest.value)}`,
+        ),
+      );
+    });
+    qhit.addEventListener("mouseleave", () =>
+      svg.querySelectorAll(".qguide").forEach((n) => n.remove()),
+    );
+    svg.append(qhit);
+    DATA.events.forEach((ev, i) => {
+      const cy = laneY(lanes.indexOf(ev.lane)),
+        c = el("circle", {
+          cx: x(ev.year),
+          cy,
+          r: 7,
+          class: "event" + (pinned.has(i) ? " pinned" : ""),
+          fill: DATA.palette[ev.major] || "#466a8a",
+        });
+      c.addEventListener("mouseenter", () => {
+        hovered = i;
+        renderBubbles();
+      });
+      c.addEventListener("mouseleave", () => {
+        hovered = null;
+        renderBubbles();
+      });
+      c.addEventListener("click", (e) => {
+        e.stopPropagation();
+        pinned.has(i) ? pinned.delete(i) : pinned.add(i);
+        renderBubbles();
+      });
+      svg.append(c);
+    });
+    renderBubbles();
+    updateDetails();
+  }
+  // 表示対象の出来事に吹き出しを配置する
+  function renderBubbles() {
+    svg
+      .querySelectorAll(".bubble,.bubbletext,.connector")
+      .forEach((n) => n.remove());
+    const visible = DATA.events
+        .map((e, i) => ({ e, i }))
+        .filter(
+          (o) =>
+            o.i === hovered ||
+            pinned.has(o.i) ||
+            (activeLane && o.e.lane === activeLane),
+        ),
+      placed = [],
+      lanePlaced = {};
+    visible.sort((a, b) => x(a.e.year) - x(b.e.year));
+    const wrap = (s, n) => {
+      const a = [];
+      for (let i = 0; i < s.length; i += n) a.push(s.slice(i, i + n));
+      return a;
+    };
+    visible.forEach(({ e, i }) => {
+      const titleLines = wrap(`${e.year}｜${e.title}`, 20),
+        lines = wrap(e.detail, 20),
+        bw = 250,
+        bh = 22 + (titleLines.length + lines.length) * 14,
+        bx = Math.min(right - bw, Math.max(left, x(e.year) + 8)),
+        by = laneY(lanes.indexOf(e.lane)) - bh - 12;
+      let p;
+      for (let k = 0; k < 40 && !p; k++) {
+        const off = (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 32,
+          c = {
+            x: bx,
+            y: Math.max(
+              qTop + 2,
+              Math.min(laneTop + lanes.length * laneH - bh, by + off),
+            ),
+            w: bw,
+            h: bh,
+            lane: e.lane,
+          };
+        if (
+          !placed.some(
+            (z) =>
+              z.lane === e.lane &&
+              c.x < z.x + z.w + 5 &&
+              c.x + c.w + 5 > z.x &&
+              c.y < z.y + z.h + 5 &&
+              c.y + c.h + 5 > z.y,
+          )
+        )
+          p = c;
+      }
+      if (!p) {
+        const n = lanePlaced[e.lane] || 0;
+        lanePlaced[e.lane] = n + 1;
+        p = {
+          x: Math.max(
+            left,
+            Math.min(right - bw, left + (n % 3) * ((right - left - bw) / 2)),
+          ),
+          y: Math.min(
+            laneTop + lanes.length * laneH - bh,
+            qTop + 20 + n * (bh + 8),
+          ),
+          w: bw,
+          h: bh,
+        };
+      } else {
+        lanePlaced[e.lane] = (lanePlaced[e.lane] || 0) + 1;
+      }
+      if (manual[i]) {
+        p.x = manual[i].x;
+        p.y = manual[i].y;
+      }
+      p.lane = e.lane;
+      let guard = 0;
+      while (
+        placed.some(
+          (z) =>
+            z.lane === e.lane &&
+            p.x < z.x + z.w + 5 &&
+            p.x + p.w + 5 > z.x &&
+            p.y < z.y + z.h + 5 &&
+            p.y + p.h + 5 > z.y,
+        ) &&
+        guard++ < 80
+      ) {
+        p.y += p.h + 8;
+        if (p.y + p.h > laneTop + lanes.length * laneH) {
+          p.y = qTop + 20;
+          p.x = Math.max(left, p.x - p.w - 12);
+        }
+      }
+      placed.push(p);
+      const dotX = x(e.year),
+        dotY = laneY(lanes.indexOf(e.lane));
+      const dotHits = (p) => {
+        const dx = dotX,
+          dy = dotY;
+        return (
+          dx >= p.x - 8 &&
+          dx <= p.x + p.w + 8 &&
+          dy >= p.y - 8 &&
+          dy <= p.y + p.h + 8
+        );
+      };
+      if (dotHits(p) && !manual[i]) {
+        p.y = Math.max(qTop + 2, dotY - p.h - 20);
+      }
+      const corners = [
+          [p.x, p.y],
+          [p.x + p.w, p.y],
+          [p.x, p.y + p.h],
+          [p.x + p.w, p.y + p.h],
+          [p.x + p.w / 2, p.y],
+          [p.x + p.w / 2, p.y + p.h],
+          [p.x, p.y + p.h / 2],
+          [p.x + p.w, p.y + p.h / 2],
+        ],
+        corner = corners.sort(
+          (a, b) =>
+            (a[0] - dotX) ** 2 +
+            (a[1] - dotY) ** 2 -
+            (b[0] - dotX) ** 2 -
+            (b[1] - dotY) ** 2,
+        )[0];
+      svg.append(
+        el("line", {
+          x1: dotX,
+          y1: dotY,
+          x2: corner[0],
+          y2: corner[1],
+          class: "connector",
+        }),
+      );
+      const g = el("g", { class: "bubbletext" });
+      g.addEventListener("click", (ev) => {
+        if (ev.target.dataset.close) return;
+        pinned.has(i) ? pinned.delete(i) : pinned.add(i);
+        renderBubbles();
+      });
+      g.append(
+        el("rect", {
+          x: p.x,
+          y: p.y,
+          width: p.w,
+          height: p.h,
+          rx: 5,
+          class: "bubble" + (pinned.has(i) ? " pinned" : ""),
+          fill: DATA.palette[e.major] || "#466a8a",
+          "fill-opacity": pinned.has(i) ? ".24" : ".14",
+          stroke: DATA.palette[e.major] || "#466a8a",
+        }),
+      );
+      titleLines.forEach((line, j) =>
+        g.append(
+          el(
+            "text",
+            { x: p.x + 8, y: p.y + 16 + j * 14, class: "bubbletitle" },
+            line,
+          ),
+        ),
+      );
+      lines.forEach((line, j) =>
+        g.append(
+          el(
+            "text",
+            {
+              x: p.x + 8,
+              y: p.y + 16 + titleLines.length * 14 + j * 14,
+              class: "bubbledetail",
+            },
+            line,
+          ),
+        ),
+      );
+      const close = el(
+        "text",
+        {
+          x: p.x + p.w - 9,
+          y: p.y + 15,
+          "text-anchor": "middle",
+          class: "bubbleclose",
+        },
+        "×",
+      );
+      close.dataset.close = "1";
+      close.setAttribute("aria-label", "吹き出しを解除");
+      close.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        pinned.delete(i);
+        renderBubbles();
+      });
+      g.append(close);
+      g.addEventListener("pointerdown", (ev) => {
+        if (ev.target === close) return;
+        const r = svg.getBoundingClientRect(),
+          chartH = laneTop + lanes.length * laneH + 85,
+          sx = W / r.width,
+          sy = chartH / r.height,
+          ox = ev.clientX,
+          oy = ev.clientY,
+          startX = p.x,
+          startY = p.y;
+        g.setPointerCapture(ev.pointerId);
+        const move = (mv) => {
+          const nx = Math.max(
+              left,
+              Math.min(right - p.w, startX + (mv.clientX - ox) * sx),
+            ),
+            ny = Math.max(
+              qTop,
+              Math.min(chartH - p.h, startY + (mv.clientY - oy) * sy),
+            );
+          g.setAttribute(
+            "transform",
+            `translate(${nx - startX},${ny - startY})`,
+          );
+          g.querySelector("rect").setAttribute("data-dragging", "1");
+          manual[i] = { x: nx, y: ny };
+        };
+        const up = () => {
+          g.removeAttribute("transform");
+          g.removeEventListener("pointermove", move);
+          g.removeEventListener("pointerup", up);
+          renderBubbles();
+        };
+        g.addEventListener("pointermove", move);
+        g.addEventListener("pointerup", up);
+      });
+      svg.append(g);
+    });
+  }
+  // 選択された行の出来事一覧を更新する
+  function updateDetails() {
+    const list = details.querySelector(".event-list");
+    list.innerHTML = "";
+    if (!activeLane) {
+      details.querySelector("h2").textContent = "選択行の出来事";
+      list.innerHTML =
+        '<span class="hint">下の行名をクリックすると、その行の出来事がすべて表示されます。</span>';
+      return;
+    }
+    details.querySelector("h2").textContent = activeLane + "｜出来事一覧";
+    DATA.events
+      .filter((e) => e.lane === activeLane)
+      .forEach((e) => {
+        const c = document.createElement("div");
+        c.className = "event-card";
+        c.style.background = (DATA.palette[e.major] || "#466a8a") + "22";
+        c.style.borderLeftColor = DATA.palette[e.major] || "#466a8a";
+        c.innerHTML = `<strong>${e.year}｜${e.title}</strong><span>${e.detail}</span><span class="source">出典：${e.source || "未入力"}${e.url ? `｜<a href="${e.url}" target="_blank" rel="noreferrer">URL</a>` : ""}</span>`;
+        list.append(c);
+      });
+  }
+  // CSV文字列をヘッダー名付きの行データへ変換する
+  function csvRows(txt) {
+    const lines = txt.replace(/\r/g, "").split("\n").filter(Boolean),
+      head = lines
+        .shift()
+        .split(",")
+        .map((v) => v.trim());
+    return lines.map((line) => {
+      const vals = line.split(",");
+      return Object.fromEntries(
+        head.map((h, i) => [h, (vals[i] || "").trim()]),
+      );
+    });
+  }
+  // 選択されたCSVを読み込み、年表データを差し替える
+  function loadCsv(file, type) {
+    const rd = new FileReader();
+    rd.onload = () => {
+      const rows = csvRows(rd.result);
+      if (type === "event") {
+        DATA.events = rows.map((r) => ({
+          year: +(r.year || r.年),
+          date: r.date || `${r.year || r.年}-01-01`,
+          major: r.major || r.大分類 || "",
+          minor: r.minor || r.小分類 || "",
+          lane: r.lane || `${r.major || r.大分類}｜${r.minor || r.小分類}`,
+          title: r.title || r.出来事 || "",
+          detail: r.detail || r.説明 || "",
+          source: r.source || r.出典 || "",
+          url: r.url || "",
+        }));
+        DATA.lanes = [...new Set(DATA.events.map((e) => e.lane))];
+      } else {
+        DATA.quant = rows.map((r) => ({
+          date: r.date || `${r.year || r.年}-01-01`,
+          series:
+            r.series || r.系列 || r["系列名（全行同じ名前）"] || "定量データ",
+          value: +(r.value || r.値 || r.加入数 || 0),
+        }));
+      }
+      draw();
+    };
+    rd.readAsText(file, "UTF-8");
+  }
+  document
+    .getElementById("eventCsv")
+    .addEventListener(
+      "change",
+      (e) => e.target.files[0] && loadCsv(e.target.files[0], "event"),
+    );
+  document
+    .getElementById("quantCsv")
+    .addEventListener(
+      "change",
+      (e) => e.target.files[0] && loadCsv(e.target.files[0], "quant"),
+    );
+  document
+    .getElementById("builderToggle")
+    .addEventListener("click", () =>
+      document.getElementById("csvDialog").showModal(),
+    );
+  document
+    .getElementById("csvClose")
+    .addEventListener("click", () =>
+      document.getElementById("csvDialog").close(),
+    );
+  document.getElementById("tpMode").addEventListener("click", () => {
+    tpMode = !tpMode;
+    document.getElementById("tpMode").textContent = tpMode
+      ? "グラフ上をクリック（入力待ち）"
+      : "転換点を追加";
+  });
+  // Blobをブラウザーからダウンロードする
+  function downloadBlob(name, blob) {
+    const a = document.createElement("a");
+    a.download = name;
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  // 現在の年表をスタイル込みのSVG文字列に変換する
+  function svgSource() {
+    const clone = svg.cloneNode(true);
+    const st = document.createElementNS(NS, "style");
+    st.textContent = [...document.querySelectorAll("style")]
+      .map((x) => x.textContent)
+      .join("\n");
+    clone.insertBefore(st, clone.firstChild);
+    return new XMLSerializer().serializeToString(clone);
+  }
+  document
+    .getElementById("exportSvg")
+    .addEventListener("click", () =>
+      downloadBlob(
+        "timeline.svg",
+        new Blob([svgSource()], { type: "image/svg+xml" }),
+      ),
+    );
+  document.getElementById("exportPng").addEventListener("click", () => {
+    const src =
+        "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svgSource()),
+      im = new Image();
+    im.onload = () => {
+      const c = document.createElement("canvas"),
+        r = svg.getBoundingClientRect(),
+        scale = 2;
+      c.width = W * scale;
+      c.height = (laneTop + lanes.length * laneH + 85) * scale;
+      c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+      c.toBlob((b) => downloadBlob("timeline.png", b), "image/png");
+    };
+    im.src = src;
+  });
+  document
+    .getElementById("exportPdf")
+    .addEventListener("click", () => window.print());
+  const csvLink = (name, text) => {
+    const a = document.getElementById(name);
+    a.href = URL.createObjectURL(
+      new Blob(["﻿" + text], { type: "text/csv;charset=utf-8" }),
+    );
+  };
+  csvLink(
+    "eventTemplate",
+    "年,大分類,小分類,出来事,説明,出典,URL\n1995,サービス,ポケベル,例,説明文,出典,https://example.com\n",
+  );
+  csvLink(
+    "quantTemplate",
+    "年,値,系列名（全行同じ名前）\n1995,0,ポケベル加入数\n1996,0,ポケベル加入数\n",
+  );
+  metric.addEventListener("change", draw);
+  draw();
+</script>

@@ -720,6 +720,7 @@
         timelineTop = top || 282,
         timelineHeight = Math.max(1, height - timelineTop);
       quantChart.innerHTML = original.innerHTML;
+      quantChart.querySelectorAll(".qguide").forEach((node) => node.remove());
       quantChart.setAttribute("viewBox", `0 0 ${width} ${top || 330}`);
       quantChart.setAttribute("preserveAspectRatio", "xMidYMin meet");
       quantChart.style.width = "100%";
@@ -731,28 +732,6 @@
       original.setAttribute("preserveAspectRatio", "xMidYMin meet");
       timeline.style.height = `calc(67vh - 12px)`;
       original.style.height = `${Math.max(360, (timelineHeight * original.clientWidth) / width)}px`;
-      const qhit = [...original.querySelectorAll("rect")].find(
-        (node) =>
-          node.getAttribute("x") === "235" && node.getAttribute("y") === "42",
-      );
-      if (qhit && !quantChart.dataset.hoverForwarder) {
-        quantChart.dataset.hoverForwarder = "1";
-        quantChart.addEventListener("mousemove", (event) => {
-          const from = quantChart.getBoundingClientRect(),
-            to = original.getBoundingClientRect();
-          qhit.dispatchEvent(
-            new MouseEvent("mousemove", {
-              clientX:
-                to.left + ((event.clientX - from.left) * to.width) / from.width,
-              clientY: to.top + event.clientY - from.top,
-              bubbles: true,
-            }),
-          );
-        });
-        quantChart.addEventListener("mouseleave", () =>
-          qhit.dispatchEvent(new MouseEvent("mouseleave", { bubbles: true })),
-        );
-      }
     };
     new MutationObserver(sync).observe(original, {
       childList: true,
@@ -1567,14 +1546,16 @@
       );
       laneLayer.append(hit);
     });
-    const qhit = el("rect", {
+    const chartBottom = laneY(lanes.length - 1) + 16;
+    const guideHit = el("rect", {
       x: left,
       y: qTop,
       width: right - left,
-      height: qBottom - qTop,
+      height: chartBottom - qTop,
       fill: "transparent",
+      "pointer-events": "all",
     });
-    qhit.addEventListener("click", (ev) => {
+    guideHit.addEventListener("click", (ev) => {
       if (!tpMode) return;
       const rr = svg.getBoundingClientRect(),
         sx = W / rr.width,
@@ -1603,48 +1584,63 @@
         dlg.hidden = true;
       };
     });
-    qhit.addEventListener("mousemove", (ev) => {
+    const showGuide = (ev, host) => {
+      const hostRect = host.getBoundingClientRect(),
+        hostViewBox = host.viewBox.baseVal,
+        hostX =
+          hostViewBox.x +
+          ((ev.clientX - hostRect.left) / hostRect.width) * hostViewBox.width,
+        hostY =
+          hostViewBox.y +
+          ((ev.clientY - hostRect.top) / hostRect.height) * hostViewBox.height;
       const rr = svg.getBoundingClientRect(),
-        yr =
-          minY +
-          ((ev.clientX - rr.left - (left / W) * rr.width) /
-            (right - left) /
-            (rr.width / W)) *
-            (maxY - minY);
+        yr = minY + ((hostX - left) / (right - left)) * (maxY - minY);
       if (!vv.length) return;
       const nearest = vv.reduce((a, b) =>
         Math.abs(+a.date.slice(0, 4) - yr) < Math.abs(+b.date.slice(0, 4) - yr)
           ? a
           : b,
       );
-      turnLayer.querySelectorAll(".qguide").forEach((n) => n.remove());
+      document
+        .querySelectorAll("#chart .qguide,#quantChart .qguide")
+        .forEach((n) => n.remove());
+      const hostTurnLayer = host.querySelector(".turnLayer");
       const xx = x(+nearest.date.slice(0, 4)),
-        yy = yq(nearest.value);
-      turnLayer.append(
+        hostBottom = hostViewBox.y + hostViewBox.height,
+        hostChartBottom = host === svg ? chartBottom : hostBottom - 16,
+        labelY = Math.max(qTop + 15, Math.min(hostChartBottom - 4, hostY - 8));
+      hostTurnLayer.append(
         el("line", {
           x1: xx,
           x2: xx,
           y1: qTop,
-          y2: laneY(lanes.length - 1) + 16,
+          y2: hostChartBottom,
           class: "qguide turn",
         }),
       );
-      turnLayer.append(
+      hostTurnLayer.append(
         el(
           "text",
           {
             x: Math.min(right - 150, xx + 6),
-            y: Math.max(qTop + 15, yy - 8),
+            y: labelY,
             class: "qguide turntext",
           },
           `${nearest.date.slice(0, 4)}年｜${fmt(nearest.value)}`,
         ),
       );
-    });
-    qhit.addEventListener("mouseleave", () =>
-      turnLayer.querySelectorAll(".qguide").forEach((n) => n.remove()),
-    );
-    quantLayer.append(qhit);
+    };
+    wrap.onmousemove = (ev) => {
+      const host = ev.target.closest?.("svg");
+      if (!host || (host !== svg && host.id !== "quantChart")) return;
+      showGuide(ev, host);
+    };
+    wrap.onmouseleave = () => {
+      document
+        .querySelectorAll("#chart .qguide,#quantChart .qguide")
+        .forEach((n) => n.remove());
+    };
+    gridLayer.append(guideHit);
     DATA.events.forEach((ev, i) => {
       const cy = laneY(lanes.indexOf(ev.lane)),
         c = el("circle", {
@@ -1689,6 +1685,8 @@
       placed = [],
       lanePlaced = {};
     visible.sort((a, b) => x(a.e.year) - x(b.e.year));
+    const bubbleTop = laneTop - 20;
+    const chartBottom = laneY(lanes.length - 1) + 16;
     const wrap = (s, n) => {
       const a = [];
       for (let i = 0; i < s.length; i += n) a.push(s.slice(i, i + n));
@@ -1707,7 +1705,7 @@
           c = {
             x: bx,
             y: Math.max(
-              qTop + 2,
+              bubbleTop,
               Math.min(laneTop + lanes.length * laneH - bh, by + off),
             ),
             w: bw,
@@ -1734,10 +1732,7 @@
             left,
             Math.min(right - bw, left + (n % 3) * ((right - left - bw) / 2)),
           ),
-          y: Math.min(
-            laneTop + lanes.length * laneH - bh,
-            qTop + 20 + n * (bh + 8),
-          ),
+          y: Math.min(chartBottom - bh, bubbleTop + 20 + n * (bh + 8)),
           w: bw,
           h: bh,
         };
@@ -1763,7 +1758,7 @@
       ) {
         p.y += p.h + 8;
         if (p.y + p.h > laneTop + lanes.length * laneH) {
-          p.y = qTop + 20;
+          p.y = bubbleTop + 20;
           p.x = Math.max(left, p.x - p.w - 12);
         }
       }
@@ -1781,8 +1776,9 @@
         );
       };
       if (dotHits(p) && !manual[i]) {
-        p.y = Math.max(qTop + 2, dotY - p.h - 20);
+        p.y = Math.max(bubbleTop, dotY - p.h - 20);
       }
+      p.y = Math.max(bubbleTop, Math.min(chartBottom - p.h, p.y));
       const corners = [
           [p.x, p.y],
           [p.x + p.w, p.y],
@@ -1885,7 +1881,7 @@
               Math.min(right - p.w, startX + (mv.clientX - ox) * sx),
             ),
             ny = Math.max(
-              qTop,
+              bubbleTop,
               Math.min(chartH - p.h, startY + (mv.clientY - oy) * sy),
             );
           g.setAttribute(

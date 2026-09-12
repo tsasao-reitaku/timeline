@@ -508,6 +508,12 @@
     font-size: 10px;
     fill: #445268;
   }
+  .chart-title {
+    font-size: 18px;
+    font-weight: 600;
+    fill: var(--fg);
+    cursor: pointer;
+  }
   .hint {
     font-size: 12px;
     color: #445268;
@@ -876,6 +882,36 @@
   #wrap {
     position: relative;
   }
+  #chartTitleEditor {
+    position: absolute;
+    top: 8px;
+    left: 20%;
+    right: 3%;
+    z-index: 2;
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  #chartTitleEditor[hidden] {
+    display: none;
+  }
+  #chartTitleInput {
+    width: 100%;
+    padding: 4px 7px;
+    border: 1px solid #aebccc;
+    border-radius: 4px;
+    background: #fff;
+    color: var(--fg);
+    font: inherit;
+  }
+  #chartTitleSave {
+    padding: 4px 8px;
+    border: 1px solid #aebccc;
+    border-radius: 4px;
+    background: #fff;
+    color: var(--fg);
+    cursor: pointer;
+  }
   #wrap svg {
     height: clamp(430px, 58vh, 610px);
   }
@@ -994,6 +1030,10 @@
 </style>
 <!-- グラフ本体: 上段の定量グラフと下段の出来事年表 -->
 <div id="wrap">
+  <div id="chartTitleEditor" hidden>
+    <input id="chartTitleInput" type="text" aria-label="グラフタイトル" />
+    <button id="chartTitleSave" type="button">確定</button>
+  </div>
   <svg
     id="chart"
     role="img"
@@ -1266,12 +1306,17 @@
   const svg = document.getElementById("chart"),
     metric = document.getElementById("metric"),
     details = document.getElementById("details"),
+    wrap = document.getElementById("wrap"),
+    chartTitleEditor = document.getElementById("chartTitleEditor"),
+    chartTitleInput = document.getElementById("chartTitleInput"),
+    chartTitleSave = document.getElementById("chartTitleSave"),
     NS = "http://www.w3.org/2000/svg";
   let activeLane = null,
     hovered = null,
     pinned = new Set(),
     manual = {},
-    tpMode = false;
+    tpMode = false,
+    chartTitle = "ポケベルの普及・衰退と社会的出来事";
   const W = 1180,
     left = 235,
     right = 1145,
@@ -1312,6 +1357,18 @@
       ? v.toFixed(0)
       : new Intl.NumberFormat("ja-JP").format(Math.round(v));
   }
+  function showChartTitleEditor() {
+    chartTitleInput.value = chartTitle;
+    chartTitleEditor.hidden = false;
+    chartTitleInput.focus();
+    chartTitleInput.select();
+  }
+  function saveChartTitle() {
+    chartTitle =
+      chartTitleInput.value.trim() || "ポケベルの普及・衰退と社会的出来事";
+    chartTitleEditor.hidden = true;
+    draw();
+  }
   function renderTpTags() {
     const box = document.getElementById("tpTags");
     box.innerHTML = "";
@@ -1334,12 +1391,25 @@
   // グラフ全体を描画する
   function draw() {
     svg.innerHTML = "";
+    updateCsvLinks();
     document.getElementById("tpMode").textContent = tpMode
       ? "グラフ上をクリック（入力待ち）"
       : "転換点を追加";
     renderTpTags();
     const H = laneTop + lanes.length * laneH + 85;
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.append(
+      el(
+        "text",
+        {
+          x: (left + right) / 2,
+          y: 25,
+          "text-anchor": "middle",
+          class: "chart-title",
+        },
+        chartTitle,
+      ),
+    );
     svg.append(el("title", {}, "定量グラフと出来事年表"));
     svg.append(
       el(
@@ -1928,6 +1998,9 @@
   // 現在の年表をスタイル込みのSVG文字列に変換する
   function svgSource() {
     const clone = svg.cloneNode(true);
+    const exportHeight = laneTop + lanes.length * laneH + 85;
+    clone.setAttribute("viewBox", `0 0 ${W} ${exportHeight}`);
+    clone.setAttribute("preserveAspectRatio", "xMidYMin meet");
     const st = document.createElementNS(NS, "style");
     st.textContent = [...document.querySelectorAll("style")]
       .map((x) => x.textContent)
@@ -1961,20 +2034,55 @@
   document
     .getElementById("exportPdf")
     .addEventListener("click", () => window.print());
-  const csvLink = (name, text) => {
-    const a = document.getElementById(name);
-    a.href = URL.createObjectURL(
-      new Blob(["﻿" + text], { type: "text/csv;charset=utf-8" }),
-    );
-  };
-  csvLink(
-    "eventTemplate",
-    "年,大分類,小分類,出来事,説明,出典,URL\n1995,サービス,ポケベル,例,説明文,出典,https://example.com\n",
-  );
-  csvLink(
-    "quantTemplate",
-    "年,値,系列名（全行同じ名前）\n1995,0,ポケベル加入数\n1996,0,ポケベル加入数\n",
-  );
+  function csvCell(value) {
+    return `"${String(value ?? "").replace(/"/g, '""')}"`;
+  }
+  function updateCsvLinks() {
+    const eventText = [
+      ["年", "大分類", "小分類", "出来事", "説明", "出典", "URL"],
+      ...DATA.events.map((event) => [
+        event.year,
+        event.major,
+        event.minor,
+        event.title,
+        event.detail,
+        event.source,
+        event.url,
+      ]),
+    ]
+      .map((row) => row.map(csvCell).join(","))
+      .join("\n");
+    const quantText = [
+      ["年", "値", "系列名（全行同じ名前）"],
+      ...DATA.quant.map((point) => [
+        point.date.slice(0, 4),
+        point.value,
+        point.series,
+      ]),
+    ]
+      .map((row) => row.map(csvCell).join(","))
+      .join("\n");
+    [
+      ["eventTemplate", eventText],
+      ["quantTemplate", quantText],
+    ].forEach(([name, text]) => {
+      const link = document.getElementById(name);
+      if (link.dataset.objectUrl) URL.revokeObjectURL(link.dataset.objectUrl);
+      const url = URL.createObjectURL(
+        new Blob(["﻿" + text + "\n"], { type: "text/csv;charset=utf-8" }),
+      );
+      link.href = url;
+      link.dataset.objectUrl = url;
+    });
+  }
+  wrap.addEventListener("click", (event) => {
+    if (event.target.closest(".chart-title")) showChartTitleEditor();
+  });
+  chartTitleSave.addEventListener("click", saveChartTitle);
+  chartTitleInput.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") saveChartTitle();
+    if (event.key === "Escape") chartTitleEditor.hidden = true;
+  });
   metric.addEventListener("change", draw);
   draw();
 </script>

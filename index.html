@@ -6,13 +6,6 @@
 <title>定量グラフ・出来事年表（インタラクティブ）</title>
 
 <style>
-  /* ===================================================================
-     基本レイアウト
-     - body を flex column にし、CSS の order で「見た目の並び順」を
-       コントロールする。HTML のソース上はタイトル・説明・操作ボタン類を
-       先に書いているが、画面には「グラフ → タイトル・説明・操作ボタン」
-       の順で表示する（レイアウト都合）。
-     =================================================================== */
   :root {
     --line: #d8dee4;
     --ink: #17202a;
@@ -46,149 +39,31 @@
     order: 3;
   }
 
-  h1 {
-    font-size: 20px;
-    margin: 24px 0 4px;
-  }
-  p.intro {
-    color: var(--sub);
-    font-size: 14px;
-    line-height: 1.6;
-    margin: 0 0 16px;
-  }
+  h1 { font-size: 20px; margin: 24px 0 4px; }
+  p.intro { color: var(--sub); font-size: 14px; line-height: 1.6; margin: 0 0 16px; }
 
-  /* ===================================================================
-     操作系 UI（ツールバー・CSV ダイアログ・転換点ダイアログ）
-     =================================================================== */
-  .toolbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin: 12px 0;
-  }
-  .toolbar button {
-    background: var(--accent);
-    color: white;
-    border: 0;
-    border-radius: 6px;
-    padding: 7px 12px;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .toolbar .export {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: var(--sub);
-  }
-  .toolbar .export button {
-    background: white;
-    color: var(--accent);
-    border: 1px solid var(--accent);
-  }
+  .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 12px 0; }
+  .toolbar button { background: var(--accent); color: white; border: 0; border-radius: 6px; padding: 7px 12px; font-size: 13px; cursor: pointer; }
+  .toolbar .export { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--sub); }
+  .toolbar .export button { background: white; color: var(--accent); border: 1px solid var(--accent); }
 
-  .metric-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 13px;
-    margin: 8px 0;
-  }
+  .metric-row { display: flex; align-items: center; gap: 8px; font-size: 13px; margin: 8px 0; }
+  .tp-heading { font-size: 13px; font-weight: 600; margin-top: 12px; }
+  .tp-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .tp-tag { display: inline-flex; align-items: center; gap: 6px; background: #fdf3e4; border: 1px solid #d9b877; border-radius: 999px; padding: 3px 10px; font-size: 12px; }
+  .tp-tag button { border: 0; background: none; cursor: pointer; font-size: 13px; line-height: 1; color: #8a5a1e; }
+  #tpMode { border: 1px solid var(--accent); background: white; color: var(--accent); border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; }
+  .hint { font-size: 12px; color: var(--sub); margin: 8px 0; }
 
-  .tp-heading {
-    font-size: 13px;
-    font-weight: 600;
-    margin-top: 12px;
-  }
-  .tp-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin: 6px 0;
-  }
-  .tp-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: #fdf3e4;
-    border: 1px solid #d9b877;
-    border-radius: 999px;
-    padding: 3px 10px;
-    font-size: 12px;
-  }
-  .tp-tag button {
-    border: 0;
-    background: none;
-    cursor: pointer;
-    font-size: 13px;
-    line-height: 1;
-    color: #8a5a1e;
-  }
-  #tpMode {
-    border: 1px solid var(--accent);
-    background: white;
-    color: var(--accent);
-    border-radius: 6px;
-    padding: 6px 12px;
-    font-size: 13px;
-    cursor: pointer;
-  }
-  .hint {
-    font-size: 12px;
-    color: var(--sub);
-    margin: 8px 0;
-  }
+  dialog { border: 1px solid var(--line); border-radius: 10px; padding: 18px; max-width: 480px; }
+  dialog .dialog-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 10px 0; }
+  dialog .csv-info { font-size: 11.5px; color: var(--sub); background: #eef2f5; padding: 8px 10px; border-radius: 6px; line-height: 1.5; margin-bottom: 12px; }
+  .tp-dialog { display: flex; align-items: center; gap: 8px; margin: 8px 0; }
 
-  dialog {
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 18px;
-    max-width: 420px;
-  }
-  dialog .dialog-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin: 10px 0;
-  }
-  .tp-dialog {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin: 8px 0;
-  }
-
-  /* ===================================================================
-     チャート本体
-     - 上段（定量グラフ）は高さを固定して常に見える状態にする
-     - 下段（出来事年表）だけがスクロールする
-     - 上段・下段はそれぞれ独立した <svg> で、同じ座標計算を共有して
-       描画する（複製・監視のような仕組みは使わない）
-     =================================================================== */
-  #wrap {
-    background: white;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  #quantViewport {
-    height: 300px;
-    border-bottom: 1px solid var(--line);
-  }
-  #quantViewport svg,
-  #timelineViewport svg {
-    width: 100%;
-    display: block;
-  }
-  #timelineViewport {
-    height: 60vh;
-    min-height: 320px;
-    overflow-y: auto;
-    overflow-x: hidden;
-  }
+  #wrap { background: white; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  #quantViewport { height: 300px; border-bottom: 1px solid var(--line); }
+  #quantViewport svg, #timelineViewport svg { width: 100%; display: block; }
+  #timelineViewport { height: 60vh; min-height: 320px; overflow-y: auto; overflow-x: hidden; }
 
   .grid { stroke: #e7ebee; stroke-width: 1; }
   .axis { stroke: #b7c0c8; stroke-width: 1; }
@@ -205,76 +80,25 @@
   .lane-band { fill: #f5f7f8; }
   .eventtext { font-size: 11.5px; fill: #17202a; }
 
-  .chart-title {
-    font-size: 20px;
-    font-weight: 700;
-    fill: var(--ink);
-    cursor: text;
-  }
-  .title-edit {
-    position: absolute;
-    font-size: 16px;
-    font-weight: 700;
-    border: 1px solid var(--accent);
-    border-radius: 4px;
-    padding: 2px 6px;
-  }
+  .chart-title { font-size: 20px; font-weight: 700; fill: var(--ink); cursor: text; }
+  .title-edit { position: absolute; font-size: 16px; font-weight: 700; border: 1px solid var(--accent); border-radius: 4px; padding: 2px 6px; }
 
-  /* 印刷（PDF書き出し）時は、スクロール枠を解除して全体を表示する */
   @media print {
-    #quantViewport,
-    #timelineViewport {
-      height: auto !important;
-      max-height: none !important;
-      overflow: visible !important;
-    }
-    .toolbar, .metric-row, .tp-heading, #tpTags, #tpMode, .hint, .tp-dialog {
-      display: none !important;
-    }
+    #quantViewport, #timelineViewport { height: auto !important; max-height: none !important; overflow: visible !important; }
+    .toolbar, .metric-row, .tp-heading, #tpTags, #tpMode, .hint, .tp-dialog { display: none !important; }
   }
 
-  /* ===================================================================
-     選択行の出来事パネル（チャートの直後、order: 2 に表示）
-     =================================================================== */
-  .details {
-    background: white;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    padding: 14px 16px;
-    margin-top: 12px;
-  }
-  .details h2 {
-    font-size: 14px;
-    margin: 0 0 10px;
-  }
-  .details .hint {
-    margin: 0;
-  }
-  .event-card {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    border-left: 3px solid var(--accent);
-    border-radius: 4px;
-    padding: 6px 10px;
-    margin-bottom: 8px;
-    font-size: 13px;
-  }
-  .event-card .source {
-    font-size: 11px;
-    color: var(--sub);
-  }
-  .event-card .source a {
-    color: var(--accent);
-  }
+  .details { background: white; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 12px; }
+  .details h2 { font-size: 14px; margin: 0 0 10px; }
+  .details .hint { margin: 0; }
+  .event-card { display: flex; flex-direction: column; gap: 4px; border-left: 3px solid var(--accent); border-radius: 4px; padding: 8px 10px; margin-bottom: 8px; font-size: 13px; }
+  .event-card .quote { font-style: italic; color: var(--sub); background: rgba(255,255,255,0.6); padding: 4px 8px; border-radius: 4px; border-left: 2px solid #b7c0c8; margin-top: 2px; }
+  .event-card .source { font-size: 11px; color: var(--sub); }
+  .event-card .source a { color: var(--accent); }
 </style>
 </head>
 
 <body>
-  <!-- ============================================================
-       サイトタイトル・説明・操作系 UI
-       （画面上は CSS order により一番下に表示される）
-       ============================================================ -->
   <h1>定量グラフ・出来事年表（インタラクティブ）</h1>
   <p class="intro">
     ポケベルの加入数の推移と、関連する社会的出来事を同じ時間軸で確認できます。
@@ -295,6 +119,11 @@
 
   <dialog id="csvDialog">
     <h2>年表を作成</h2>
+    <div class="csv-info">
+      <strong>【出来事CSVのフォーマット仕様】</strong><br>
+      ヘッダー: <code>年（必須）,大分類（必須）,小分類,出来事タイトル（必須）,詳細説明,引用文,出典,URL</code><br>
+      ※文章内にカンマや改行が含まれるセルは、必ずセル全体をダブルクォーテーション(")で囲んでください。
+    </div>
     <div class="dialog-row">
       <label>出来事CSV<input id="eventCsv" type="file" accept=".csv,text/csv" /></label>
       <a id="eventTemplate" download="出来事_template.csv" href="#">ひな型をダウンロード</a>
@@ -318,8 +147,8 @@
   <div id="tpTags" class="tp-tags" aria-live="polite"></div>
   <button id="tpMode" type="button">転換点を追加</button>
   <div class="hint">
-    行名クリック：下のパネルにその行の出来事を一覧表示　｜　出来事の枠クリック：出典URLがあれば開く
-    ｜　マウスオーバー：年・値を表示
+    行名クリック：下のパネルにその行の出来事を一覧表示 ｜ 出来事の枠クリック：出典URLがあれば開く
+    ｜ マウスオーバー：年・値を表示
   </div>
   <div id="tpDialog" class="tp-dialog" hidden>
     <label>転換点ラベル<input id="tpLabel" type="text" /></label>
@@ -327,10 +156,6 @@
     <button id="tpCancel" type="button">キャンセル</button>
   </div>
 
-  <!-- ============================================================
-       チャート本体
-       画面上は一番上に表示される（#wrap { order: 1 }）
-       ============================================================ -->
   <div id="wrap">
     <div id="quantViewport">
       <svg id="quantSvg" role="img" aria-label="ポケベル加入数の推移"></svg>
@@ -350,698 +175,89 @@
 <script>
 "use strict";
 
-/* =====================================================================
-   1. データ
-   ===================================================================== */
 let DATA = {
   "quant": [
-    {
-      "date": "1988-01-01",
-      "series": "ポケベル加入数",
-      "value": 3519589
-    },
-    {
-      "date": "1989-01-01",
-      "series": "ポケベル加入数",
-      "value": 4246612
-    },
-    {
-      "date": "1990-01-01",
-      "series": "ポケベル加入数",
-      "value": 5082452
-    },
-    {
-      "date": "1991-01-01",
-      "series": "ポケベル加入数",
-      "value": 5911377
-    },
-    {
-      "date": "1992-01-01",
-      "series": "ポケベル加入数",
-      "value": 6688634
-    },
-    {
-      "date": "1993-01-01",
-      "series": "ポケベル加入数",
-      "value": 8063627
-    },
-    {
-      "date": "1994-01-01",
-      "series": "ポケベル加入数",
-      "value": 9353249
-    },
-    {
-      "date": "1995-01-01",
-      "series": "ポケベル加入数",
-      "value": 10610549
-    },
-    {
-      "date": "1996-01-01",
-      "series": "ポケベル加入数",
-      "value": 10074304
-    },
-    {
-      "date": "1997-01-01",
-      "series": "ポケベル加入数",
-      "value": 7115702
-    },
-    {
-      "date": "1998-01-01",
-      "series": "ポケベル加入数",
-      "value": 3765686
-    },
-    {
-      "date": "1999-01-01",
-      "series": "ポケベル加入数",
-      "value": 2071003
-    },
-    {
-      "date": "2000-01-01",
-      "series": "ポケベル加入数",
-      "value": 1439206
-    },
-    {
-      "date": "2001-01-01",
-      "series": "ポケベル加入数",
-      "value": 1136930
-    },
-    {
-      "date": "2002-01-01",
-      "series": "ポケベル加入数",
-      "value": 954986
-    },
-    {
-      "date": "2003-01-01",
-      "series": "ポケベル加入数",
-      "value": 804964
-    },
-    {
-      "date": "2004-01-01",
-      "series": "ポケベル加入数",
-      "value": 626274
-    },
-    {
-      "date": "2005-01-01",
-      "series": "ポケベル加入数",
-      "value": 502130
-    },
-    {
-      "date": "2006-01-01",
-      "series": "ポケベル加入数",
-      "value": 163227
-    },
-    {
-      "date": "2007-01-01",
-      "series": "ポケベル加入数",
-      "value": 160919
-    },
-    {
-      "date": "2008-01-01",
-      "series": "ポケベル加入数",
-      "value": 157702
-    },
-    {
-      "date": "2009-01-01",
-      "series": "ポケベル加入数",
-      "value": 152578
-    },
-    {
-      "date": "2010-01-01",
-      "series": "ポケベル加入数",
-      "value": 146193
-    },
-    {
-      "date": "2011-01-01",
-      "series": "ポケベル加入数",
-      "value": 150571
-    },
-    {
-      "date": "2012-01-01",
-      "series": "ポケベル加入数",
-      "value": 148542
-    }
+    { "date": "1988-01-01", "series": "ポケベル加入数", "value": 3519589 },
+    { "date": "1989-01-01", "series": "ポケベル加入数", "value": 4246612 },
+    { "date": "1990-01-01", "series": "ポケベル加入数", "value": 5082452 },
+    { "date": "1991-01-01", "series": "ポケベル加入数", "value": 5911377 },
+    { "date": "1992-01-01", "series": "ポケベル加入数", "value": 6688634 },
+    { "date": "1993-01-01", "series": "ポケベル加入数", "value": 8063627 },
+    { "date": "1994-01-01", "series": "ポケベル加入数", "value": 9353249 },
+    { "date": "1995-01-01", "series": "ポケベル加入数", "value": 10610549 },
+    { "date": "1996-01-01", "series": "ポケベル加入数", "value": 10074304 },
+    { "date": "1997-01-01", "series": "ポケベル加入数", "value": 7115702 },
+    { "date": "1998-01-01", "series": "ポケベル加入数", "value": 3765686 },
+    { "date": "1999-01-01", "series": "ポケベル加入数", "value": 2071003 },
+    { "date": "2000-01-01", "series": "ポケベル加入数", "value": 1439206 },
+    { "date": "2001-01-01", "series": "ポケベル加入数", "value": 1136930 },
+    { "date": "2002-01-01", "series": "ポケベル加入数", "value": 954986 },
+    { "date": "2003-01-01", "series": "ポケベル加入数", "value": 804964 },
+    { "date": "2004-01-01", "series": "ポケベル加入数", "value": 626274 },
+    { "date": "2005-01-01", "series": "ポケベル加入数", "value": 502130 },
+    { "date": "2006-01-01", "series": "ポケベル加入数", "value": 163227 },
+    { "date": "2007-01-01", "series": "ポケベル加入数", "value": 160919 },
+    { "date": "2008-01-01", "series": "ポケベル加入数", "value": 157702 },
+    { "date": "2009-01-01", "series": "ポケベル加入数", "value": 152578 },
+    { "date": "2010-01-01", "series": "ポケベル加入数", "value": 146193 },
+    { "date": "2011-01-01", "series": "ポケベル加入数", "value": 150571 },
+    { "date": "2012-01-01", "series": "ポケベル加入数", "value": 148542 }
   ],
   "events": [
-    {
-      "year": 1986,
-      "date": "1986-01-01",
-      "major": "仮説・メモ",
-      "minor": "",
-      "lane": "仮説・メモ",
-      "title": "開始年はどこか？",
-      "detail": "",
-      "source": "",
-      "url": ""
-    },
-    {
-      "year": 1995,
-      "date": "1995-01-01",
-      "major": "仮説・メモ",
-      "minor": "",
-      "lane": "仮説・メモ",
-      "title": "ピーク・PHSが流行して一気に衰退",
-      "detail": "",
-      "source": "",
-      "url": ""
-    },
-    {
-      "year": 2025,
-      "date": "2025-01-01",
-      "major": "仮説・メモ",
-      "minor": "",
-      "lane": "仮説・メモ",
-      "title": "最近リバイバル商品が出たらしい",
-      "detail": "",
-      "source": "",
-      "url": ""
-    },
-    {
-      "year": 1958,
-      "date": "1958-01-01",
-      "major": "サービス",
-      "minor": "(米国)ポケベル",
-      "lane": "サービス｜(米国)ポケベル",
-      "title": "米国で初のポケベル「ベルボーイ」が開始当…",
-      "detail": "米国で初のポケベル「ベルボーイ」が開始当時は交換手に呼出番号を伝えるもの",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1995,
-      "date": "1995-01-01",
-      "major": "サービス",
-      "minor": "(米国)ポケベル",
-      "lane": "サービス｜(米国)ポケベル",
-      "title": "双方向ポケベル(簡易双方向通信サービス)開始",
-      "detail": "双方向ポケベル(簡易双方向通信サービス)開始。日本では実用化されなかった。",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1986,
-      "date": "1986-01-01",
-      "major": "サービス",
-      "minor": "(国内)ポケベル",
-      "lane": "サービス｜(国内)ポケベル",
-      "title": "IDO(日本移動通信)",
-      "detail": "IDO(日本移動通信)、DDI(第二電電・現KDDI)参入始まる",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 2007,
-      "date": "2007-01-01",
-      "major": "サービス",
-      "minor": "(国内)ポケベル",
-      "lane": "サービス｜(国内)ポケベル",
-      "title": "最大事業者であるNTTドコモサービス終了",
-      "detail": "",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1968,
-      "date": "1968-01-01",
-      "major": "サービス",
-      "minor": "(国内)ポケベル",
-      "lane": "サービス｜(国内)ポケベル",
-      "title": "電電公社(現NTTドコモ)",
-      "detail": "電電公社(現NTTドコモ)、東京23区でポケベル商用開始",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1986,
-      "date": "1986-01-01",
-      "major": "サービス",
-      "minor": "(国内)ポケベル",
-      "lane": "サービス｜(国内)ポケベル",
-      "title": "エリア拡大販売ルートがスーパー",
-      "detail": "エリア拡大販売ルートがスーパー、コンビニ、駅まで拡大",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1999,
-      "date": "1999-01-01",
-      "major": "サービス",
-      "minor": "(国内)ポケベル",
-      "lane": "サービス｜(国内)ポケベル",
-      "title": "基本料無料",
-      "detail": "",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 2007,
-      "date": "2007-01-01",
-      "major": "サービス",
-      "minor": "(国内)ポケベル",
-      "lane": "サービス｜(国内)ポケベル",
-      "title": "防災分野や無線LAN環境での特殊用途に限…",
-      "detail": "防災分野や無線LAN環境での特殊用途に限り運用",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1978,
-      "date": "1978-01-01",
-      "major": "サービス",
-      "minor": "(国内)自動車電話",
-      "lane": "サービス｜(国内)自動車電話",
-      "title": "自動車電話サービス開始",
-      "detail": "自動車電話サービス開始。料金が非常に高額でポケットベルが唯一の個人向けの移動体通信",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1995,
-      "date": "1995-01-01",
-      "major": "サービス",
-      "minor": "(国内)PHS",
-      "lane": "サービス｜(国内)PHS",
-      "title": "PHS事業開始",
-      "detail": "",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 2008,
-      "date": "2008-01-01",
-      "major": "サービス",
-      "minor": "(国内)PHS",
-      "lane": "サービス｜(国内)PHS",
-      "title": "PHSサービス終了",
-      "detail": "",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1997,
-      "date": "1997-01-01",
-      "major": "サービス",
-      "minor": "(国内)携帯電話",
-      "lane": "サービス｜(国内)携帯電話",
-      "title": "携帯電話のショートメール開始",
-      "detail": "",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1999,
-      "date": "1999-01-01",
-      "major": "サービス",
-      "minor": "(国内)携帯電話",
-      "lane": "サービス｜(国内)携帯電話",
-      "title": "iモード開始",
-      "detail": "",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1978,
-      "date": "1978-01-01",
-      "major": "回線速度",
-      "minor": "",
-      "lane": "回線速度",
-      "title": "一般電話",
-      "detail": "一般電話、携帯電話に先立ってデジタル化 280MHz",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1987,
-      "date": "1987-01-01",
-      "major": "回線速度",
-      "minor": "",
-      "lane": "回線速度",
-      "title": "400MHz",
-      "detail": "",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1989,
-      "date": "1989-01-01",
-      "major": "回線速度",
-      "minor": "",
-      "lane": "回線速度",
-      "title": "1200MHz",
-      "detail": "",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1968,
-      "date": "1968-01-01",
-      "major": "機能",
-      "minor": "ポケベル",
-      "lane": "機能｜ポケベル",
-      "title": "トーン呼出",
-      "detail": "",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1986,
-      "date": "1986-01-01",
-      "major": "機能",
-      "minor": "ポケベル",
-      "lane": "機能｜ポケベル",
-      "title": "数字送信・表示",
-      "detail": "",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1991,
-      "date": "1991-01-01",
-      "major": "機能",
-      "minor": "ポケベル",
-      "lane": "機能｜ポケベル",
-      "title": "自由文字",
-      "detail": "",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1996,
-      "date": "1996-01-01",
-      "major": "機能",
-      "minor": "ポケベル",
-      "lane": "機能｜ポケベル",
-      "title": "漢字表示",
-      "detail": "",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1995,
-      "date": "1995-01-01",
-      "major": "機能",
-      "minor": "PHS",
-      "lane": "機能｜PHS",
-      "title": "ＰＨＳは",
-      "detail": "ＰＨＳは、携帯電話に比べて料金が安いこと、ポケベルに比べて双方向の通話やメールができることから、急速にポケベル利用者がＰＨＳに移動するようになった",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1985,
-      "date": "1985-01-01",
-      "major": "政策",
-      "minor": "",
-      "lane": "政策",
-      "title": "通信自由化「音響のみならず文字その他の情…",
-      "detail": "通信自由化「音響のみならず文字その他の情報も送出できるものとなった。信号報知局は無線呼出局と改称された。",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1968,
-      "date": "1968-01-01",
-      "major": "人",
-      "minor": "",
-      "lane": "人",
-      "title": "利用者は外出の多い営業部員",
-      "detail": "利用者は外出の多い営業部員、経営者、医療関係者に限られていた",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1986,
-      "date": "1986-01-01",
-      "major": "人",
-      "minor": "",
-      "lane": "人",
-      "title": "これに飛びついたのが女子高生である",
-      "detail": "",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1992,
-      "date": "1992-01-01",
-      "major": "人",
-      "minor": "",
-      "lane": "人",
-      "title": "数字の語呂合わせでメッセージを送る一種の…",
-      "detail": "数字の語呂合わせでメッセージを送る一種の言葉遊びが1992年頃から流行し始め",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1995,
-      "date": "1995-01-01",
-      "major": "人",
-      "minor": "",
-      "lane": "人",
-      "title": "女子高生はＰＨＳを「ピッチ」と呼び愛用す…",
-      "detail": "女子高生はＰＨＳを「ピッチ」と呼び愛用するようになった。",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1986,
-      "date": "1986-01-01",
-      "major": "文化",
-      "minor": "",
-      "lane": "文化",
-      "title": "彼女らは",
-      "detail": "彼女らは、数字しか利用できない環境でも、「０８４０＝おはよう」のような語呂合わせや、仲間内での略語を作り出して、かなり複雑な会話を行っていた。",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1986,
-      "date": "1986-01-01",
-      "major": "文化",
-      "minor": "",
-      "lane": "文化",
-      "title": "ポケベルにデータを送ることにより",
-      "detail": "ポケベルにデータを送ることにより、送信者の電話番号や用件分類を伝えることができる。すなわち、不特定多数の電話とポケベルの間のネットワークが出現したのである。",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1986,
-      "date": "1986-01-01",
-      "major": "文化",
-      "minor": "",
-      "lane": "文化",
-      "title": "携帯電話での「メル友」に相当する",
-      "detail": "携帯電話での「メル友」に相当する、「ベル友」ブームが出現した",
-      "source": "ポケベルの歴史",
-      "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html"
-    },
-    {
-      "year": 1991,
-      "date": "1991-01-01",
-      "major": "文化",
-      "minor": "",
-      "lane": "文化",
-      "title": "カナのフリーメッセージ入力には「ポケベル…",
-      "detail": "カナのフリーメッセージ入力には「ポケベル打ち」というコード入力が必要で、一種の特技として電話機のテンキーで高速にこれができる人はユーザーから崇められ、テレビ等のメディアで驚きを持って紹介される事もあった。",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1991,
-      "date": "1991-01-01",
-      "major": "文化",
-      "minor": "",
-      "lane": "文化",
-      "title": "この頃ポケベル・ルーズソックス・プリクラ…",
-      "detail": "この頃ポケベル・ルーズソックス・プリクラ手帳は女子高生の三種の神器と呼ばれる事もあり、女子高生のマストアイテムとしての地位を確固たるものとしていた。",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1991,
-      "date": "1991-01-01",
-      "major": "文化",
-      "minor": "",
-      "lane": "文化",
-      "title": "地方に目を向けるとポケベルは",
-      "detail": "地方に目を向けるとポケベルは、自分自身が使った事が無いので得体が知れない、自分もポケベルはおろか携帯電話も持っていないのに子供にはまだ早い、非行に走るかもしれない等の理由から親世代からの評判は総じて良くなく、親から許しが出ないので持ちたくても持てず、あるいは周りで所有者が少なかったため実際にブームを感じる事無く不所有に終わる者も多かった。",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1993,
-      "date": "1993-01-01",
-      "major": "文化",
-      "minor": "ドラマ・作品",
-      "lane": "文化｜ドラマ・作品",
-      "title": "テレビドラマ「ポケベルが鳴らなくて」や同…",
-      "detail": "テレビドラマ「ポケベルが鳴らなくて」や同名の主題歌がヒット",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1996,
-      "date": "1996-01-01",
-      "major": "文化",
-      "minor": "ドラマ・作品",
-      "lane": "文化｜ドラマ・作品",
-      "title": "テレビドラマ「ピュア",
-      "detail": "",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1997,
-      "date": "1997-01-01",
-      "major": "文化",
-      "minor": "ドラマ・作品",
-      "lane": "文化｜ドラマ・作品",
-      "title": "当番弁護士 第3作（1997年） 「金融…",
-      "detail": "当番弁護士 第3作（1997年） 「金融業者殺しの無実を立証できるポケベル援助交際の女子高生を探せ",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1997,
-      "date": "1997-01-01",
-      "major": "文化",
-      "minor": "ドラマ・作品",
-      "lane": "文化｜ドラマ・作品",
-      "title": "職員室 第8作（1997年） 「裏切った…",
-      "detail": "職員室 第8作（1997年） 「裏切ったベル友",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1998,
-      "date": "1998-01-01",
-      "major": "文化",
-      "minor": "ドラマ・作品",
-      "lane": "文化｜ドラマ・作品",
-      "title": "中学生日記「ポケットベル",
-      "detail": "",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1990,
-      "date": "1990-01-01",
-      "major": "文化",
-      "minor": "ドラマ・作品",
-      "lane": "文化｜ドラマ・作品",
-      "title": "刑事コロンボ「だまされたコロンボ",
-      "detail": "",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1991,
-      "date": "1991-01-01",
-      "major": "文化",
-      "minor": "ドラマ・作品",
-      "lane": "文化｜ドラマ・作品",
-      "title": "ドラえもん「伝言花火",
-      "detail": "",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1996,
-      "date": "1996-01-01",
-      "major": "文化",
-      "minor": "ドラマ・作品",
-      "lane": "文化｜ドラマ・作品",
-      "title": "NHKスペシャル「ベル友〜12文字の青春〜",
-      "detail": "",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1994,
-      "date": "1994-01-01",
-      "major": "文化",
-      "minor": "音楽",
-      "lane": "文化｜音楽",
-      "title": "ポケベルNightは5643#",
-      "detail": "",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 2015,
-      "date": "2015-01-01",
-      "major": "文化",
-      "minor": "音楽",
-      "lane": "文化｜音楽",
-      "title": "1977年生まれの僕らは",
-      "detail": "",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1994,
-      "date": "1994-01-01",
-      "major": "文化",
-      "minor": "音楽",
-      "lane": "文化｜音楽",
-      "title": "渋谷で5時",
-      "detail": "",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1997,
-      "date": "1997-01-01",
-      "major": "文化",
-      "minor": "音楽",
-      "lane": "文化｜音楽",
-      "title": "2色だけのパレット",
-      "detail": "",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1994,
-      "date": "1994-01-01",
-      "major": "文化",
-      "minor": "音楽",
-      "lane": "文化｜音楽",
-      "title": "あなただけ見つめてる",
-      "detail": "",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 1987,
-      "date": "1987-01-01",
-      "major": "社会課題",
-      "minor": "",
-      "lane": "社会課題",
-      "title": "個人での契約も出現し",
-      "detail": "個人での契約も出現し、子供に持たせる親も現れるようになり、親子関係の希薄化・非行問題との関連が指摘されるように",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    },
-    {
-      "year": 2024,
-      "date": "2024-01-01",
-      "major": "社会課題",
-      "minor": "",
-      "lane": "社会課題",
-      "title": "レバノンでのポケベル爆発(遠隔操作で一斉…",
-      "detail": "レバノンでのポケベル爆発(遠隔操作で一斉に爆発する仕組み)",
-      "source": "無線呼び出し",
-      "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97"
-    }
+    { "year": 1986, "date": "1986-01-01", "major": "仮説・メモ", "minor": "", "lane": "仮説・メモ", "title": "サービス開始年の検証", "detail": "ポケベルの商用化・サービス開始時期に関する考察とメモ。", "quote": "", "source": "", "url": "" },
+    { "year": 1995, "date": "1995-01-01", "major": "仮説・メモ", "minor": "", "lane": "仮説・メモ", "title": "普及ピークと衰退の始まり", "detail": "1995年のピーク到達後、PHSの登場と普及により加入数が急速に減少。", "quote": "", "source": "", "url": "" },
+    { "year": 2025, "date": "2025-01-01", "major": "仮説・メモ", "minor": "", "lane": "仮説・メモ", "title": "レトロリバイバル商品の登場", "detail": "懐古ブームに伴い、ポケベル風の玩具やガジェットなどのリバイバル商品が登場。", "quote": "", "source": "", "url": "" },
+    { "year": 1958, "date": "1958-01-01", "major": "サービス", "minor": "(米国)ポケベル", "lane": "サービス｜(米国)ポケベル", "title": "米国で初ポケベル開始", "detail": "米国で初の無線呼び出し「ベルボーイ」の運用が開始される。初期はオペレーター経由で呼び出す仕組みだった。", "quote": "「ベルボーイ」が開始当時は交換手に呼出番号を伝えるもの", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1995, "date": "1995-01-01", "major": "サービス", "minor": "(米国)ポケベル", "lane": "サービス｜(米国)ポケベル", "title": "米国で双方向ポケベル開始", "detail": "米国で文字の返信が可能な簡易双方向通信サービスが開始。日本では導入に至らなかった。", "quote": "双方向ポケベル(簡易双方向通信サービス)開始。日本では実用化されなかった。", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1986, "date": "1986-01-01", "major": "サービス", "minor": "(国内)ポケベル", "lane": "サービス｜(国内)ポケベル", "title": "新規事業者（IDO・DDI）参入", "detail": "通信自由化に伴い、IDOやDDIなどの新規通信事業者がポケベル市場へ参入。", "quote": "IDO(日本移動通信)、DDI(第二電電・現KDDI)参入始まる", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 2007, "date": "2007-01-01", "major": "サービス", "minor": "(国内)ポケベル", "lane": "サービス｜(国内)ポケベル", "title": "NTTドコモサービス終了", "detail": "加入数の減少に伴い、最大手であったNTTドコモがポケベル事業から完全撤退。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1968, "date": "1968-01-01", "major": "サービス", "minor": "(国内)ポケベル", "lane": "サービス｜(国内)ポケベル", "title": "電電公社がポケベル商用開始", "detail": "日本電電公社が東京23区において日本初のポケットベル商用サービスをスタート。", "quote": "電電公社(現NTTドコモ)、東京23区でポケベル商用開始", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1986, "date": "1986-01-01", "major": "サービス", "minor": "(国内)ポケベル", "lane": "サービス｜(国内)ポケベル", "title": "コンビニ・駅へ販売網拡大", "detail": "端末の入手が容易になり、一般ユーザーや若年層へと普及する下地が整った。", "quote": "エリア拡大販売ルートがスーパー、コンビニ、駅まで拡大", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1999, "date": "1999-01-01", "major": "サービス", "minor": "(国内)ポケベル", "lane": "サービス｜(国内)ポケベル", "title": "基本料金無料プランの登場", "detail": "携帯電話・PHSへの移行が進む中、生き残りをかけた基本料無料化施策などが実施された。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 2007, "date": "2007-01-01", "major": "サービス", "minor": "(国内)ポケベル", "lane": "サービス｜(国内)ポケベル", "title": "防災・医療等で限定運用継続", "detail": "個人向けサービス終了後も、電波の届きやすさを活かした防災行政無線や医療機関用途へ特化。", "quote": "防災分野や無線LAN環境での特殊用途に限り運用", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1978, "date": "1978-01-01", "major": "サービス", "minor": "(国内)自動車電話", "lane": "サービス｜(国内)自動車電話", "title": "自動車電話サービス開始", "detail": "初となる車載移動電話が開始されたが高価格なため、個人用通信としてはポケベルが主流であり続けた。", "quote": "料金が非常に高額でポケットベルが唯一の個人向けの移動体通信", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1995, "date": "1995-01-01", "major": "サービス", "minor": "(国内)PHS", "lane": "サービス｜(国内)PHS", "title": "国内PHSサービス開始", "detail": "携帯電話より低価格で通話・通信が可能なPHSの商用サービスがスタート。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 2008, "date": "2008-01-01", "major": "サービス", "minor": "(国内)PHS", "lane": "サービス｜(国内)PHS", "title": "PHSサービス順次終了へ", "detail": "携帯電話（3G）の普及に伴い、PHSサービスも縮小・順次終了に向かった。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1997, "date": "1997-01-01", "major": "サービス", "minor": "(国内)携帯電話", "lane": "サービス｜(国内)携帯電話", "title": "携帯のショートメール開始", "detail": "携帯電話どうしで短いテキストメッセージを送受信できるSMS機能が登場。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1999, "date": "1999-01-01", "major": "サービス", "minor": "(国内)携帯電話", "lane": "サービス｜(国内)携帯電話", "title": "NTTドコモ「iモード」開始", "detail": "携帯電話でのウェブ閲覧やEメール送受信を可能にし、モバイルネット社会を一気に加速させた。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1978, "date": "1978-01-01", "major": "回線速度", "minor": "", "lane": "回線速度", "title": "ポケベル回線のデジタル化", "detail": "通信容量拡大のため280MHz帯でのデジタル方式呼び出しが導入された。", "quote": "一般電話、携帯電話に先立ってデジタル化 280MHz", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1987, "date": "1987-01-01", "major": "回線速度", "minor": "", "lane": "回線速度", "title": "400MHz帯の追加導入", "detail": "利用者急増に対応するため、新たな周波数帯が割り当てられた。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1989, "date": "1989-01-01", "major": "回線速度", "minor": "", "lane": "回線速度", "title": "1200MHz帯への拡張", "detail": "送信速度の高速化と情報量の拡大に対応した周波数帯の利用が開始された。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1968, "date": "1968-01-01", "major": "機能", "minor": "ポケベル", "lane": "機能｜ポケベル", "title": "トーン呼び出し機能", "detail": "音だけで連絡の有無を知らせ、利用者が公衆電話等から折り返し電話する方式。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1986, "date": "1986-01-01", "major": "機能", "minor": "ポケベル", "lane": "機能｜ポケベル", "title": "数字送信・表示機能の導入", "detail": "電話番号や数字の受取が可能になり、公衆電話から数字を入力して相手に伝える文化が誕生。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1991, "date": "1991-01-01", "major": "機能", "minor": "ポケベル", "lane": "機能｜ポケベル", "title": "自由文字（カナ）表示機能", "detail": "語呂合わせだけでなく、直接文章をテキスト送信・画面受話が可能となった。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1996, "date": "1996-01-01", "major": "機能", "minor": "ポケベル", "lane": "機能｜ポケベル", "title": "漢字表示機能の対応", "detail": "表現力が向上し、より明確なビジネス・日常メッセージのやり取りが可能になった。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1995, "date": "1995-01-01", "major": "機能", "minor": "PHS", "lane": "機能｜PHS", "title": "PHSへの急速なユーザー移行", "detail": "通話と双方向メールが安価に利用できるPHSの登場により、ポケベル市場からのシフトが加速。", "quote": "ＰＨＳは、携帯電話に比べて料金が安いこと、ポケベルに比べて双方向の通話やメールができることから、急速にポケベル利用者がＰＨＳに移動するようになった", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1985, "date": "1985-01-01", "major": "政策", "minor": "", "lane": "政策", "title": "通信自由化と無線呼出局改称", "detail": "法律上の位置づけが変更され、文字情報等の送信解禁とともに設備体制が整備された。", "quote": "音響のみならず文字その他の情報も送出できるものとなった。信号報知局は無線呼出局と改称された。", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1968, "date": "1968-01-01", "major": "人", "minor": "", "lane": "人", "title": "ビジネス層・医療関係の利用", "detail": "導入初期は端末・基本料が高額であり、業務上の緊急連絡手段として限定的に活用された。", "quote": "利用者は外出の多い営業部員、経営者、医療関係者に限られていた", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1986, "date": "1986-01-01", "major": "人", "minor": "", "lane": "人", "title": "女子高生層への爆発的普及", "detail": "コミュニケーションツールとしての価値を見出した女子高生の間でポケベルが一気にブーム化。", "quote": "これに飛びついたのが女子高生である", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1992, "date": "1992-01-01", "major": "人", "minor": "", "lane": "人", "title": "数字語呂合わせブーム到来", "detail": "限られた数字表示機能を工夫し、「0840（おはよう）」等の暗号的コミュニケーションが定着。", "quote": "数字の語呂合わせでメッセージを送る一種の言葉遊びが1992年頃から流行し始め", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1995, "date": "1995-01-01", "major": "人", "minor": "", "lane": "人", "title": "「ピッチ」ブームと移行", "detail": "ポケベルブームの主役だった女子高生たちが、通話もできるPHSへ愛用端末をシフトさせた。", "quote": "女子高生はＰＨＳを「ピッチ」と呼び愛用するようになった。", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1986, "date": "1986-01-01", "major": "文化", "minor": "", "lane": "文化", "title": "語呂合わせによる複雑な会話", "detail": "制限された入力環境の中で若者独自の文字コードや省略文化が形成された。", "quote": "彼女らは、数字しか利用できない環境でも、「０８４０＝おはよう」のような語呂合わせや、仲間内での略語を作り出して、かなり複雑な会話を行っていた。", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1986, "date": "1986-01-01", "major": "文化", "minor": "", "lane": "文化", "title": "電話とポケベルの相互連携", "detail": "公衆電話から送られたデータがポケベルに着信するシステムにより、個人間ネットワークが成立。", "quote": "ポケベルにデータを送ることにより、送信者の電話番号や用件分類を伝えることができる。すなわち、不特定多数の電話とポケベルの間のネットワークが出現したのである。", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1986, "date": "1986-01-01", "major": "文化", "minor": "", "lane": "文化", "title": "「ベル友」ブームの出現", "detail": "番号を交換し公衆電話等から頻繁にメッセージを送り合う人間関係・文化が定着した。", "quote": "携帯電話での「メル友」に相当する、「ベル友」ブームが出現した", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
+    { "year": 1991, "date": "1991-01-01", "major": "文化", "minor": "", "lane": "文化", "title": "「ポケベル打ち」高速入力文化", "detail": "2タッチ入力方式を記憶し、公衆電話のキーを素早く叩く技能が大きな注目を集めた。", "quote": "カナのフリーメッセージ入力には「ポケベル打ち」というコード入力が必要で、一種の特技として電話機のテンキーで高速にこれができる人はユーザーから崇められ、テレビ等のメディアで驚きを持って紹介される事もあった。", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1991, "date": "1991-01-01", "major": "文化", "minor": "", "lane": "文化", "title": "女子高生「三種の神器」の一角", "detail": "90年代半ばのコギャル文化を象徴する必須アイテムとしてポケベルが君臨した。", "quote": "この頃ポケベル・ルーズソックス・プリクラ手帳は女子高生の三種の神器と呼ばれる事もあり、女子高生のマストアイテムとしての地位を確固たるものとしていた。", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1991, "date": "1991-01-01", "major": "文化", "minor": "", "lane": "文化", "title": "地方・親世代での警戒と不所有", "detail": "非行への懸念や実態の不透明さから保守的な家庭では所有が認められず、地域差が生じた。", "quote": "地方に目を向けるとポケベルは、自分自身が使った事が無いので得体が知れない、自分もポケベルはおろか携帯電話も持っていないのに子供にはまだ早い、非行に走るかもしれない等の理由から親世代からの評判は総じて良くなく、親から許しが出ないので持ちたくても持てず、あるいは周りで所有者が少なかったため実際にブームを感じる事無く不所有に終わる者も多かった。", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1993, "date": "1993-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "ドラマ『ポケベルが鳴らなくて』", "detail": "ポケベルを題材にした社会派ドラマと主題歌のヒットにより、ポケベルの認知度が一般社会に広く浸透。", "quote": "テレビドラマ「ポケベルが鳴らなくて」や同名の主題歌がヒット", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1996, "date": "1996-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "ドラマ『ピュア』でポケベル使用", "detail": "和久井映見主演のヒットドラマ劇中で、主人公同士の重要な連絡手段としてポケベルが描かれた。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1997, "date": "1997-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "ドラマ『当番弁護士 第3作』", "detail": "ポケベルや当時の援助交際社会問題を取り上げたサスペンスドラマが放映された。", "quote": "当番弁護士 第3作（1997年） 「金融業者殺しの無実を立証できるポケベル援助交際の女子高生を探せ", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1997, "date": "1997-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "ドラマ『職員室 第8作』", "detail": "学校現場と「ベル友」間の人間関係の軋轢を描いたドラマエピソード。", "quote": "職員室 第8作（1997年） 「裏切ったベル友", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1998, "date": "1998-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "『中学生日記』「ポケットベル」", "detail": "中学生の間にも広がりつつあったポケベルとコミュニケーションを扱った教育ドラマ。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1990, "date": "1990-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "『刑事コロンボ』にポケベル登場", "detail": "海外作品においてもポケベルがアリバイや連絡の小道具として使用された。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1991, "date": "1991-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "『ドラえもん』「伝言花火」", "detail": "遠隔でメッセージを伝えるひみつ道具として、当時のポケベル流行を反映したエピソードが放送。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1996, "date": "1996-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "NHK『ベル友〜12文字の青春〜』", "detail": "短い文字数に思いを託す若者たちの「ベル友」現象に迫ったドキュメンタリー番組。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1994, "date": "1994-01-01", "major": "文化", "minor": "音楽", "lane": "文化｜音楽", "title": "楽曲『ポケベルNightは5643#』", "detail": "ポケベル打ちの番号列（5643#＝コロシテ＝夢中）をタイトルに冠したポップソング。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 2015, "date": "2015-01-01", "major": "文化", "minor": "音楽", "lane": "文化｜音楽", "title": "楽曲『1977年生まれの僕らは』", "detail": "1990年代半ばに青春期を過ごした世代の思い出としてポケベルが歌詞の中で描かれている。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1994, "date": "1994-01-01", "major": "文化", "minor": "音楽", "lane": "文化｜音楽", "title": "楽曲『渋谷で5時』", "detail": "「ポケベル鳴らして」の歌詞で知られる、当時の若者のリアルな待ち合わせ文化を描いたデュエット曲。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1997, "date": "1997-01-01", "major": "文化", "minor": "音楽", "lane": "文化｜音楽", "title": "楽曲『2色だけのパレット』", "detail": "液晶画面の2色表示などをモチーフとした楽曲表現。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1994, "date": "1994-01-01", "major": "文化", "minor": "音楽", "lane": "文化｜音楽", "title": "楽曲『あなただけ見つめてる』", "detail": "「ポケベル持たされた」というフレーズを通じて、当時の恋愛や束縛・連絡手段が描かれている。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 1987, "date": "1987-01-01", "major": "社会課題", "minor": "", "lane": "社会課題", "title": "親子の希薄化・非行問題の指摘", "detail": "深夜の連れ出しや見知らぬ人物との通信によるトラブルが懸念され、学校や社会で議論となった。", "quote": "個人での契約も出現し、子供に持たせる親も現れるようになり、親子関係の希薄化・非行問題との関連が指摘されるように", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
+    { "year": 2024, "date": "2024-01-01", "major": "社会課題", "minor": "", "lane": "社会課題", "title": "レバノンでのポケベル爆発事件", "detail": "爆発物を仕込まれたポケベル端末が遠隔信号で一斉爆発し、多数の死傷者を出す国際事件となった。", "quote": "レバノンでのポケベル爆発(遠隔操作で一斉に爆発する仕組み)", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" }
   ],
   "turning_points": [
-    {
-      "date": "1995-01-01",
-      "label": "加入数ピーク\n1,061万件"
-    },
-    {
-      "date": "1997-01-01",
-      "label": "急減期\n競合サービスへ移行"
-    }
+    { "date": "1995-01-01", "label": "加入数ピーク\n1,061万件" },
+    { "date": "1997-01-01", "label": "急減期\n競合サービスへ移行" }
   ],
   "palette": {
     "仮説・メモ": "#8A8F98",
@@ -1072,39 +288,29 @@ let DATA = {
   ]
 };
 
-/* CSV の列名。「(必須)」の有無をここ1箇所で管理する。 */
-const EVENT_CSV_HEADERS = ["年（必須）", "大分類（必須）", "小分類", "出来事（必須）", "説明", "出典", "URL"];
+const EVENT_CSV_HEADERS = ["年（必須）", "大分類（必須）", "小分類", "出来事タイトル（必須）", "詳細説明", "引用文", "出典", "URL"];
 const QUANT_CSV_HEADERS = ["年（必須）", "値", "系列名（全行同じ名前）（必須）"];
 
-/* =====================================================================
-   2. 画面の状態（ユーザー操作で変わるもの）
-   ===================================================================== */
 let chartTitle = "ポケベルの普及・衰退と社会的出来事";
-let activeLane = null;      // クリックで選択中の行（下のパネル表示用）
-let tpMode = false;         // 転換点追加モード中かどうか
-let hoverYear = null;       // マウスオーバー中の年（ガイド線用）
-let hoverLocalY = { quant: null, timeline: null }; // どちらの領域でマウスの高さか
+let activeLane = null;
+let tpMode = false;
+let hoverYear = null;
+let hoverLocalY = { quant: null, timeline: null };
 
-/* =====================================================================
-   3. 座標まわりの定数・計算式
-   上段・下段どちらのSVGも、この同じ定数・関数を使って位置を合わせる。
-   ===================================================================== */
 const W = 1180;
 const LEFT = 235;
 const RIGHT = 1145;
 
-// 上段（定量グラフ）
 const Q_TOP = 42;
 const Q_BOTTOM = 230;
 const Q_HEIGHT = 280;
 
-// 下段（出来事年表）
-const LANE_TOP = 16;     // 一番上の余白
-const LANE_GAP = 14;     // 行と行の間の余白
-const ROW_GAP = 4;       // 同じ行内の段と段の間の余白
-const BOX_GAP = 10;      // 横に並ぶ出来事どうしの最小間隔
-const BOX_MAX_W = 250;   // 出来事テキストの最大幅（これを超えたら折り返す）
-const BOX_PAD = 6;       // テキストとボックス枠の余白
+const LANE_TOP = 16;
+const LANE_GAP = 14;
+const ROW_GAP = 4;
+const BOX_GAP = 10;
+const BOX_MAX_W = 250;
+const BOX_PAD = 6;
 const FONT_SIZE = 11.5;
 const LINE_H = 14;
 const MIN_ROW_H = 20;
@@ -1123,12 +329,10 @@ function x(year) {
   return LEFT + ((year - minYear()) / (maxYear() - minYear())) * (RIGHT - LEFT);
 }
 
-// テキストの実際の描画幅を測るための、非表示 canvas
 const measureCtx = document.createElement("canvas").getContext("2d");
 measureCtx.font = `${FONT_SIZE}px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif`;
 function measureWidth(text) { return measureCtx.measureText(text).width; }
 
-// テキストを、最大幅に収まるよう複数行に折り返す
 function layoutText(text) {
   const innerMax = BOX_MAX_W - BOX_PAD * 2;
   const full = measureWidth(text);
@@ -1150,9 +354,6 @@ function layoutText(text) {
   return { lines, w: BOX_MAX_W };
 }
 
-// 出来事年表の全体レイアウトを計算する。
-// 同じ行（レーン）の中で、年が近い出来事どうしが重なる場合は
-// 段（サブ行）を増やして避ける（区間スケジューリングの考え方）。
 let currentLayout = null;
 function computeLayout() {
   const boxes = [];
@@ -1165,13 +366,12 @@ function computeLayout() {
       .filter(({ e }) => e.lane === lane)
       .sort((a, b) => a.e.year - b.e.year)
       .map(({ e, i }) => {
-        const text = e.detail || e.title;
+        const text = e.title || e.detail;
         const { lines, w } = layoutText(text);
         return { e, i, lines, w, h: lines.length * LINE_H + BOX_PAD };
       });
 
-    // 各出来事を、空いている一番上の段に詰めていく
-    const rowRightEdge = []; // 各段の、これまでに置いた出来事の右端 x
+    const rowRightEdge = [];
     items.forEach((it) => {
       const startX = x(it.e.year);
       let row = rowRightEdge.findIndex((rightEdge) => startX >= rightEdge + BOX_GAP);
@@ -1229,9 +429,6 @@ function formatValue(v) {
     : new Intl.NumberFormat("ja-JP").format(Math.round(v));
 }
 
-/* =====================================================================
-   4. 上段（定量グラフ）の描画
-   ===================================================================== */
 function drawQuant() {
   const svg = document.getElementById("quantSvg");
   svg.innerHTML = "";
@@ -1246,22 +443,14 @@ function drawQuant() {
 
   svg.append(el("title", {}, "定量グラフ"));
 
-  // タイトル（クリックで編集）
-  const titleText = el(
-    "text",
-    { x: LEFT + 10, y: 26, class: "chart-title" },
-    chartTitle
-  );
+  const titleText = el("text", { x: LEFT + 10, y: 26, class: "chart-title" }, chartTitle);
   titleText.addEventListener("click", () => startTitleEdit(titleText));
   titleLayer.append(titleText);
 
-  // 縦の年グリッド線（下段と位置を揃えるための基準）
   [1990, 1995, 2000, 2005, 2010]
     .filter((y) => y >= minYear() && y <= maxYear())
     .forEach((y) => {
-      gridLayer.append(
-        el("line", { x1: x(y), x2: x(y), y1: Q_TOP, y2: Q_BOTTOM, class: "grid" })
-      );
+      gridLayer.append(el("line", { x1: x(y), x2: x(y), y1: Q_TOP, y2: Q_BOTTOM, class: "grid" }));
     });
 
   svg.append(el("line", { x1: LEFT, x2: RIGHT, y1: Q_BOTTOM, y2: Q_BOTTOM, class: "axis" }));
@@ -1307,7 +496,6 @@ function drawQuant() {
     );
   });
 
-  // 転換点を追加するためのクリック領域
   const clickArea = el("rect", { x: LEFT, y: Q_TOP, width: RIGHT - LEFT, height: Q_BOTTOM - Q_TOP, fill: "transparent" });
   clickArea.addEventListener("click", (ev) => {
     if (!tpMode) return;
@@ -1320,9 +508,6 @@ function drawQuant() {
   svg.append(clickArea);
 }
 
-/* =====================================================================
-   5. 下段（出来事年表）の描画
-   ===================================================================== */
 function drawTimeline() {
   const svg = document.getElementById("timelineSvg");
   svg.innerHTML = "";
@@ -1338,31 +523,24 @@ function drawTimeline() {
   svg.append(gridLayer, laneLayer, turnLayer, eventLayer, guideLayer);
 
   svg.append(el("title", {}, "出来事年表"));
-  svg.append(
-    el("desc", {}, "大分類・小分類ごとの行に出来事を常時表示。年が近い出来事は段を分けて重なりを避ける。行名クリックで下のパネルに一覧表示。")
-  );
 
-  // 縦の年グリッド線（上段と同じ x 位置に揃える）
   [1960, 1970, 1980, 1990, 2000, 2010, 2020]
     .filter((y) => y >= minYear() && y <= maxYear())
     .forEach((y) => {
       gridLayer.append(el("line", { x1: x(y), x2: x(y), y1: 0, y2: H - 30, class: "grid" }));
     });
 
-  // 年の目盛り（一番下）
   [minYear(), 1960, 1970, 1980, 1990, 2000, 2010, 2020, maxYear()]
     .filter((y, i, arr) => arr.indexOf(y) === i && y >= minYear() && y <= maxYear())
     .forEach((y) => {
       svg.append(el("text", { x: x(y), y: H - 10, "text-anchor": "middle", class: "tick" }, String(y)));
     });
 
-  // 転換点の縦線（続きであることが分かるよう、下段にも表示）
   DATA.turning_points.forEach((tp) => {
     const xx = x(+tp.date.slice(0, 4));
     turnLayer.append(el("line", { x1: xx, x2: xx, y1: 0, y2: H - 30, class: "turn" }));
   });
 
-  // 行（レーン）ごとの背景帯・区切り線・ラベル・クリック領域
   layout.laneInfos.forEach(({ lane, top, height, center }, idx) => {
     if (idx % 2 === 1) {
       laneLayer.append(el("rect", { x: 0, y: top, width: W, height, class: "lane-band" }));
@@ -1390,7 +568,6 @@ function drawTimeline() {
     laneLayer.append(hit);
   });
 
-  // 出来事（常時表示のテキストボックス）
   layout.boxes.forEach(({ e, x: bx, y: by, w, h, lines }) => {
     const color = DATA.palette[e.major] || "#466a8a";
     const group = el("g", { class: "eventbox" });
@@ -1414,9 +591,6 @@ function drawTimeline() {
   });
 }
 
-/* =====================================================================
-   6. 選択行の出来事パネルの更新
-   ===================================================================== */
 function updateDetails() {
   const details = document.getElementById("details");
   const list = details.querySelector(".event-list");
@@ -1435,17 +609,17 @@ function updateDetails() {
       card.className = "event-card";
       card.style.background = (DATA.palette[e.major] || "#466a8a") + "1a";
       card.style.borderLeftColor = DATA.palette[e.major] || "#466a8a";
-      const text = e.detail || e.title;
-      card.innerHTML = `<strong>${e.year}年</strong><span>${text}</span><span class="source">出典：${e.source || "未入力"}${e.url ? `｜<a href="${e.url}" target="_blank" rel="noreferrer">URL</a>` : ""}</span>`;
+
+      let html = `<strong>${e.year}年 ｜ ${e.title}</strong>`;
+      if (e.detail) html += `<div>${e.detail}</div>`;
+      if (e.quote) html += `<div class="quote">“${e.quote}”</div>`;
+      html += `<span class="source">出典：${e.source || "未入力"}${e.url ? `｜<a href="${e.url}" target="_blank" rel="noreferrer">URL</a>` : ""}</span>`;
+      
+      card.innerHTML = html;
       list.append(card);
     });
 }
 
-/* =====================================================================
-   8. マウスオーバー時のガイド（縦線＋「年｜値」ラベル）
-   上段・下段どちらの SVG も、この共通関数からガイドを描く。
-   ラベルはマウスが今ある側の SVG にだけ、マウスの高さで表示する。
-   ===================================================================== */
 function onChartHover(ev, svg, part, topBound, bottomBound) {
   const rect = svg.getBoundingClientRect();
   const scaleX = W / rect.width;
@@ -1484,7 +658,7 @@ function drawGuide(svgId, labelY, top, bottom) {
   const xx = x(hoverYear);
   layer.append(el("line", { x1: xx, x2: xx, y1: top, y2: bottom, class: "guideline" }));
 
-  if (labelY == null) return; // ラベルはマウスがある側にだけ出す
+  if (labelY == null) return;
 
   const values = metricValues();
   const nearest = values.length
@@ -1496,9 +670,6 @@ function drawGuide(svgId, labelY, top, bottom) {
   layer.append(el("text", { x: labelX, y: clampedY, class: "guidetext" }, text));
 }
 
-/* =====================================================================
-   9. タイトルの編集
-   ===================================================================== */
 function startTitleEdit(titleTextEl) {
   const svg = document.getElementById("quantSvg");
   const rect = svg.getBoundingClientRect();
@@ -1527,9 +698,6 @@ function startTitleEdit(titleTextEl) {
   });
 }
 
-/* =====================================================================
-   10. 転換点の追加・削除
-   ===================================================================== */
 function renderTpTags() {
   const box = document.getElementById("tpTags");
   box.innerHTML = "";
@@ -1569,9 +737,6 @@ function openTurningPointDialog(year) {
   document.getElementById("tpCancel").onclick = () => { dialog.hidden = true; };
 }
 
-/* =====================================================================
-   11. CSV の読み込み・書き出し
-   ===================================================================== */
 function parseCsv(text) {
   const lines = text.replace(/\r/g, "").split("\n").filter(Boolean);
   const head = lines.shift().split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
@@ -1581,7 +746,6 @@ function parseCsv(text) {
   });
 }
 
-// CSV の列名は「（必須）」付きだが、読み込み時はそれを取り除いて照合する
 function findField(row, ...names) {
   for (const key of Object.keys(row)) {
     const plain = key.replace(/（必須）/g, "").trim();
@@ -1604,8 +768,9 @@ function loadCsv(file, type) {
           date: `${year}-01-01`,
           major, minor,
           lane: minor ? `${major}｜${minor}` : major,
-          title: findField(r, "出来事"),
-          detail: findField(r, "説明"),
+          title: findField(r, "出来事タイトル", "出来事"),
+          detail: findField(r, "詳細説明", "説明"),
+          quote: findField(r, "引用文"),
           source: findField(r, "出典"),
           url: findField(r, "URL")
         };
@@ -1630,7 +795,7 @@ function csvCell(v) { return `"${String(v ?? "").replace(/"/g, '""')}"`; }
 
 function updateCsvLinks() {
   const eventRows = DATA.events.map((e) =>
-    [e.year, e.major, e.minor, e.title, e.detail, e.source, e.url].map(csvCell).join(",")
+    [e.year, e.major, e.minor, e.title, e.detail, e.quote, e.source, e.url].map(csvCell).join(",")
   );
   const quantRows = DATA.quant.map((d) =>
     [+d.date.slice(0, 4), d.value, d.series].map(csvCell).join(",")
@@ -1644,10 +809,6 @@ function updateCsvLinks() {
   quantLink.href = URL.createObjectURL(new Blob(["\ufeff" + quantCsv], { type: "text/csv;charset=utf-8" }));
 }
 
-/* =====================================================================
-   12. 書き出し（SVG / PNG / PDF）
-   上段・下段2つの SVG を、書き出し用に1枚の SVG へ結合してから出力する。
-   ===================================================================== */
 function buildExportSvg() {
   const quant = document.getElementById("quantSvg");
   const timeline = document.getElementById("timelineSvg");
@@ -1710,9 +871,6 @@ document.getElementById("exportPng").addEventListener("click", () => {
 
 document.getElementById("exportPdf").addEventListener("click", () => window.print());
 
-/* =====================================================================
-   13. 画面全体の再描画・イベント配線
-   ===================================================================== */
 function redraw() {
   updateCsvLinks();
   renderTpTags();
@@ -1721,8 +879,6 @@ function redraw() {
   updateDetails();
 }
 
-// マウスオーバーのガイド用リスナーは、SVG要素自体は再描画のたびに
-// 作り直されないので、最初に1回だけ登録すればよい。
 function setupHoverGuides() {
   const quantSvg = document.getElementById("quantSvg");
   const timelineSvg = document.getElementById("timelineSvg");
@@ -1733,7 +889,6 @@ function setupHoverGuides() {
 }
 
 document.getElementById("metric").addEventListener("change", redraw);
-
 document.getElementById("builderToggle").addEventListener("click", () => {
   updateCsvLinks();
   document.getElementById("csvDialog").showModal();

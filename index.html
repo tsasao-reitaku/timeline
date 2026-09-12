@@ -40,7 +40,7 @@
             line.setAttribute("y1", 42);
             line.setAttribute("y2", bottom - 16);
             line.setAttribute("class", "grid");
-            svg.append(line);
+            (svg.querySelector(".gridLayer") || svg).append(line);
             const text = document.createElementNS(NS, "text");
             text.dataset.axisYear = year;
             text.setAttribute("x", x(year));
@@ -48,7 +48,7 @@
             text.setAttribute("text-anchor", "middle");
             text.setAttribute("class", "tick");
             text.textContent = year;
-            svg.append(text);
+            (svg.querySelector(".gridLayer") || svg).append(text);
           });
           const next = new MutationObserver(() =>
             requestAnimationFrame(() => sync(svg)),
@@ -100,7 +100,7 @@
             line.setAttribute("y1", 42);
             line.setAttribute("y2", bottom - 16);
             line.setAttribute("class", "grid");
-            svg.append(line);
+            (svg.querySelector(".gridLayer") || svg).append(line);
             const text = document.createElementNS(
               "http://www.w3.org/2000/svg",
               "text",
@@ -111,7 +111,7 @@
             text.setAttribute("text-anchor", "middle");
             text.setAttribute("class", "tick");
             text.textContent = year;
-            svg.append(text);
+            (svg.querySelector(".gridLayer") || svg).append(text);
           });
         });
       };
@@ -167,7 +167,7 @@
           line.setAttribute("y1", 42);
           line.setAttribute("y2", bottom - 16);
           line.setAttribute("class", "grid");
-          svg.append(line);
+          (svg.querySelector(".gridLayer") || svg).append(line);
           const text = document.createElementNS(NS, "text");
           text.dataset.axisYear = year;
           text.setAttribute("x", x(year));
@@ -175,7 +175,7 @@
           text.setAttribute("text-anchor", "middle");
           text.setAttribute("class", "tick");
           text.textContent = year;
-          svg.append(text);
+          (svg.querySelector(".gridLayer") || svg).append(text);
         });
       });
       updating = false;
@@ -1398,7 +1398,27 @@
     renderTpTags();
     const H = laneTop + lanes.length * laneH + 85;
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const gridLayer = el("g", { class: "gridLayer" });
+    const quantLayer = el("g", { class: "quantLayer" });
+    const turnLayer = el("g", { class: "turnLayer" });
+    const laneLayer = el("g", { class: "laneLayer" });
+    const eventLayer = el("g", { class: "eventLayer" });
+    const bubbleLayer = el("g", { class: "bubbleLayer" });
+    svg.append(gridLayer);
+    svg.append(quantLayer);
+    svg.append(turnLayer);
+    svg.append(laneLayer);
+    svg.append(eventLayer);
+    svg.append(bubbleLayer);
+    svg.append(el("title", {}, "定量グラフと出来事年表"));
     svg.append(
+      el(
+        "desc",
+        {},
+        "上段は定量データ、下段はカテゴリ別の出来事。行クリックで行の全出来事、点クリックで吹き出し固定。",
+      ),
+    );
+    quantLayer.append(
       el(
         "text",
         {
@@ -1410,18 +1430,10 @@
         chartTitle,
       ),
     );
-    svg.append(el("title", {}, "定量グラフと出来事年表"));
-    svg.append(
-      el(
-        "desc",
-        {},
-        "上段は定量データ、下段はカテゴリ別の出来事。行クリックで行の全出来事、点クリックで吹き出し固定。",
-      ),
-    );
     [1990, 1995, 2000, 2005, 2010]
       .filter((y) => y >= minY && y <= maxY)
       .forEach((y) => {
-        svg.append(
+        gridLayer.append(
           el("line", {
             x1: x(y),
             x2: x(y),
@@ -1430,7 +1442,7 @@
             class: "grid",
           }),
         );
-        svg.append(
+        gridLayer.append(
           el(
             "text",
             { x: x(y), y: H - 22, "text-anchor": "middle", class: "tick" },
@@ -1438,7 +1450,7 @@
           ),
         );
       });
-    svg.append(
+    quantLayer.append(
       el("line", {
         x1: left,
         x2: right,
@@ -1447,7 +1459,7 @@
         class: "axis",
       }),
     );
-    svg.append(
+    quantLayer.append(
       el("line", { x1: left, x2: left, y1: qTop, y2: qBottom, class: "axis" }),
     );
     const vv = vals(),
@@ -1455,10 +1467,10 @@
       yq = (v) => qBottom - (v / vmax) * (qBottom - qTop);
     [0, 0.5, 1].forEach((t) => {
       const yy = qBottom - t * (qBottom - qTop);
-      svg.append(
+      quantLayer.append(
         el("line", { x1: left, x2: right, y1: yy, y2: yy, class: "grid" }),
       );
-      svg.append(
+      quantLayer.append(
         el(
           "text",
           { x: left - 8, y: yy + 4, "text-anchor": "end", class: "tick" },
@@ -1472,15 +1484,15 @@
       )
       .join(" ");
     if (path) {
-      svg.append(
+      quantLayer.append(
         el("path", {
           d: `M${x(minY)},${qBottom} ${path.slice(1)} L${x(maxY)},${qBottom} Z`,
           class: "qarea",
         }),
       );
-      svg.append(el("path", { d: path, class: "qline" }));
+      quantLayer.append(el("path", { d: path, class: "qline" }));
     } else {
-      svg.append(
+      quantLayer.append(
         el(
           "text",
           { x: left + 8, y: qTop + 22, class: "turntext" },
@@ -1488,7 +1500,7 @@
         ),
       );
     }
-    svg.append(
+    quantLayer.append(
       el(
         "text",
         { x: left, y: qTop - 17, class: "tick" },
@@ -1500,7 +1512,7 @@
     DATA.turning_points.forEach((tp, ti) => {
       const yy = +tp.date.slice(0, 4),
         xx = x(yy);
-      svg.append(
+      turnLayer.append(
         el("line", {
           x1: xx,
           x2: xx,
@@ -1509,7 +1521,7 @@
           class: "turn",
         }),
       );
-      svg.append(
+      turnLayer.append(
         el(
           "text",
           { x: xx + 4, y: qTop + 14 + ti * 20, class: "turntext" },
@@ -1519,12 +1531,12 @@
     });
     lanes.forEach((lane, i) => {
       const y = laneY(i);
-      svg.append(
+      laneLayer.append(
         el("line", {
           x1: left,
           x2: right,
-          y1: y + 18,
-          y2: y + 18,
+          y1: y,
+          y2: y,
           class: "grid",
         }),
       );
@@ -1540,19 +1552,20 @@
         activeLane = activeLane === lane ? null : lane;
         draw();
       });
-      svg.append(
+      laneLayer.append(
         el(
           "text",
           {
             x: 8,
-            y: y + 4,
+            y,
+            "dominant-baseline": "middle",
             class: "lane-label" + (activeLane === lane ? " selected" : ""),
             fill: DATA.palette[lane.split("｜")[0]] || "currentColor",
           },
           lane,
         ),
       );
-      svg.append(hit);
+      laneLayer.append(hit);
     });
     const qhit = el("rect", {
       x: left,
@@ -1604,10 +1617,10 @@
           ? a
           : b,
       );
-      svg.querySelectorAll(".qguide").forEach((n) => n.remove());
+      turnLayer.querySelectorAll(".qguide").forEach((n) => n.remove());
       const xx = x(+nearest.date.slice(0, 4)),
         yy = yq(nearest.value);
-      svg.append(
+      turnLayer.append(
         el("line", {
           x1: xx,
           x2: xx,
@@ -1616,7 +1629,7 @@
           class: "qguide turn",
         }),
       );
-      svg.append(
+      turnLayer.append(
         el(
           "text",
           {
@@ -1629,9 +1642,9 @@
       );
     });
     qhit.addEventListener("mouseleave", () =>
-      svg.querySelectorAll(".qguide").forEach((n) => n.remove()),
+      turnLayer.querySelectorAll(".qguide").forEach((n) => n.remove()),
     );
-    svg.append(qhit);
+    quantLayer.append(qhit);
     DATA.events.forEach((ev, i) => {
       const cy = laneY(lanes.indexOf(ev.lane)),
         c = el("circle", {
@@ -1654,14 +1667,15 @@
         pinned.has(i) ? pinned.delete(i) : pinned.add(i);
         renderBubbles();
       });
-      svg.append(c);
+      eventLayer.append(c);
     });
     renderBubbles();
     updateDetails();
   }
   // 表示対象の出来事に吹き出しを配置する
   function renderBubbles() {
-    svg
+    const bubbleLayer = svg.querySelector(".bubbleLayer");
+    bubbleLayer
       .querySelectorAll(".bubble,.bubbletext,.connector")
       .forEach((n) => n.remove());
     const visible = DATA.events
@@ -1786,7 +1800,7 @@
             (b[0] - dotX) ** 2 -
             (b[1] - dotY) ** 2,
         )[0];
-      svg.append(
+      bubbleLayer.append(
         el("line", {
           x1: dotX,
           y1: dotY,
@@ -1890,7 +1904,7 @@
         g.addEventListener("pointermove", move);
         g.addEventListener("pointerup", up);
       });
-      svg.append(g);
+      bubbleLayer.append(g);
     });
   }
   // 選択された行の出来事一覧を更新する
@@ -1921,7 +1935,7 @@
       head = lines
         .shift()
         .split(",")
-        .map((v) => v.trim());
+        .map((v) => v.trim().replace(/(?:\*|（必須）)$/, ""));
     return lines.map((line) => {
       const vals = line.split(",");
       return Object.fromEntries(
@@ -2037,9 +2051,21 @@
   function csvCell(value) {
     return `"${String(value ?? "").replace(/"/g, '""')}"`;
   }
+  const CSV_HEADERS = {
+    event: [
+      "年（必須）",
+      "大分類",
+      "小分類（必須）",
+      "出来事（必須）",
+      "説明",
+      "出典",
+      "URL",
+    ],
+    quant: ["年（必須）", "値", "系列名（全行同じ名前）（必須）"],
+  };
   function updateCsvLinks() {
     const eventText = [
-      ["年", "大分類", "小分類", "出来事", "説明", "出典", "URL"],
+      CSV_HEADERS.event,
       ...DATA.events.map((event) => [
         event.year,
         event.major,
@@ -2053,7 +2079,7 @@
       .map((row) => row.map(csvCell).join(","))
       .join("\n");
     const quantText = [
-      ["年", "値", "系列名（全行同じ名前）"],
+      CSV_HEADERS.quant,
       ...DATA.quant.map((point) => [
         point.date.slice(0, 4),
         point.value,

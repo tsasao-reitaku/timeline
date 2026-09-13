@@ -875,6 +875,10 @@
                 eventLayer.append(clip);
 
                 const group = el("g", { class: "eventbox", style: "cursor:pointer" });
+
+                // 見た目には何も出さない、行全体をクリックできるようにするための当たり判定
+                group.append(el("rect", { x: bx, y: by - LINE_H + 3, width: BOX_W, height: LINE_H, fill: "transparent" }));
+
                 group.append(el("circle", { cx: bx + 4, cy: by, r: 3, fill: color }));
 
                 const label = el("text", { x: textX, y: by + 4, class: "eventtext" }, text);

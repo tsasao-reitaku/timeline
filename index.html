@@ -360,6 +360,19 @@
         .event-card .source a {
             color: var(--accent);
         }
+
+        /* 出来事の帯やデータ要素がマウスイベントを邪魔しないようにする */
+        .event-band,
+        .data-line,
+        .chart-bg {
+            pointer-events: none;
+        }
+
+        /* マウス判定専用の透明な矩形枠 */
+        .overlay {
+            fill: none;
+            pointer-events: all;
+        }
     </style>
 </head>
 

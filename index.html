@@ -192,8 +192,8 @@
         }
 
         #quantViewport {
-            height: 300px;
             border-bottom: 1px solid var(--line);
+            overflow: hidden;
         }
 
         #quantViewport svg,
@@ -269,13 +269,26 @@
             text-decoration: underline;
         }
 
-        .lane-band {
-            fill: #f5f7f8;
-        }
-
         .eventtext {
             font-size: 11.5px;
             fill: #17202a;
+        }
+
+        .expandbubble rect {
+            cursor: pointer;
+        }
+
+        .expandclose {
+            font-size: 12px;
+            cursor: pointer;
+            fill: #53606b;
+        }
+
+        .expandlink {
+            font-size: 10.5px;
+            fill: var(--accent);
+            cursor: pointer;
+            text-decoration: underline;
         }
 
         .chart-title {
@@ -574,6 +587,7 @@
         let tpMode = false;
         let hoverYear = null;
         let hoverLocalY = { quant: null, timeline: null };
+        let expanded = new Set(); // クリックで全文表示中の出来事の index
 
         const W = 1180;
         const LEFT = 235;
@@ -587,11 +601,10 @@
         const LANE_GAP = 14;
         const ROW_GAP = 4;
         const BOX_GAP = 10;
-        const BOX_MAX_W = 250;
-        const BOX_PAD = 6;
+        const BOX_W = 210;
+        const BOX_INNER_PAD = 8;
         const FONT_SIZE = 11.5;
-        const LINE_H = 14;
-        const MIN_ROW_H = 20;
+        const LINE_H = 18;
 
         function years() {
             const ys = [
@@ -607,21 +620,20 @@
             return LEFT + ((year - minYear()) / (maxYear() - minYear())) * (RIGHT - LEFT);
         }
 
+        // テキストの実際の描画幅を測るための、非表示 canvas
+        // （マウスオーバー時にどれだけ横スクロールさせるかの計算や、
+        //   クリックで開く吹き出しの折り返しに使う）
         const measureCtx = document.createElement("canvas").getContext("2d");
         measureCtx.font = `${FONT_SIZE}px -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif`;
         function measureWidth(text) { return measureCtx.measureText(text).width; }
 
-        function layoutText(text) {
-            const innerMax = BOX_MAX_W - BOX_PAD * 2;
-            const full = measureWidth(text);
-            if (full <= innerMax) {
-                return { lines: [text], w: full + BOX_PAD * 2 };
-            }
+        // テキストを、指定した幅に収まるよう複数行に折り返す（クリック時の吹き出し用）
+        function wrapToWidth(text, maxWidth) {
             const lines = [];
             let cur = "";
             for (const ch of text) {
                 const test = cur + ch;
-                if (measureWidth(test) > innerMax && cur) {
+                if (measureWidth(test) > maxWidth && cur) {
                     lines.push(cur);
                     cur = ch;
                 } else {
@@ -629,9 +641,13 @@
                 }
             }
             if (cur) lines.push(cur);
-            return { lines, w: BOX_MAX_W };
+            return lines;
         }
 
+        // 出来事年表の全体レイアウトを計算する。
+        // 出来事は1行固定・幅も固定（はみ出す分は隠す）なので、行の高さは一定になる。
+        // 同じ行（レーン）の中で、年が近い出来事どうしが重なる場合は
+        // 段（サブ行）を増やして避ける（区間スケジューリングの考え方）。
         let currentLayout = null;
         function computeLayout() {
             const boxes = [];
@@ -642,35 +658,25 @@
                 const items = DATA.events
                     .map((e, i) => ({ e, i }))
                     .filter(({ e }) => e.lane === lane)
-                    .sort((a, b) => a.e.year - b.e.year)
-                    .map(({ e, i }) => {
-                        const text = e.title || e.detail;
-                        const { lines, w } = layoutText(text);
-                        return { e, i, lines, w, h: lines.length * LINE_H + BOX_PAD };
-                    });
+                    .sort((a, b) => a.e.year - b.e.year);
 
-                const rowRightEdge = [];
+                // 各出来事を、空いている一番上の段に詰めていく
+                const rowRightEdge = []; // 各段の、これまでに置いた出来事の右端 x
                 items.forEach((it) => {
                     const startX = x(it.e.year);
                     let row = rowRightEdge.findIndex((rightEdge) => startX >= rightEdge + BOX_GAP);
                     if (row === -1) { row = rowRightEdge.length; rowRightEdge.push(0); }
-                    rowRightEdge[row] = startX + it.w;
+                    rowRightEdge[row] = startX + BOX_W;
                     it.row = row;
                 });
 
                 const rowCount = Math.max(1, rowRightEdge.length);
-                const rowHeights = new Array(rowCount).fill(MIN_ROW_H);
-                items.forEach((it) => { rowHeights[it.row] = Math.max(rowHeights[it.row], it.h); });
-
-                const rowTop = [];
-                let acc = 0;
-                rowHeights.forEach((h) => { rowTop.push(acc); acc += h + ROW_GAP; });
-                const laneHeight = acc - ROW_GAP;
+                const laneHeight = rowCount * LINE_H + ROW_GAP * (rowCount - 1);
 
                 items.forEach((it) => {
                     boxes.push({
-                        e: it.e, i: it.i, lines: it.lines, w: it.w, h: it.h,
-                        x: x(it.e.year), y: cursorY + rowTop[it.row]
+                        e: it.e, i: it.i,
+                        x: x(it.e.year), y: cursorY + it.row * (LINE_H + ROW_GAP)
                     });
                 });
 
@@ -711,6 +717,8 @@
             const svg = document.getElementById("quantSvg");
             svg.innerHTML = "";
             svg.setAttribute("viewBox", `0 0 ${W} ${Q_HEIGHT}`);
+            svg.setAttribute("width", W);
+            svg.setAttribute("height", Q_HEIGHT);
 
             const gridLayer = el("g", { class: "gridLayer" });
             const quantLayer = el("g", { class: "quantLayer" });
@@ -725,7 +733,7 @@
             titleText.addEventListener("click", () => startTitleEdit(titleText));
             titleLayer.append(titleText);
 
-            [1990, 1995, 2000, 2005, 2010]
+            [1960, 1970, 1980, 1990, 2000, 2010, 2020]
                 .filter((y) => y >= minYear() && y <= maxYear())
                 .forEach((y) => {
                     gridLayer.append(el("line", { x1: x(y), x2: x(y), y1: Q_TOP, y2: Q_BOTTOM, class: "grid" }));
@@ -733,6 +741,14 @@
 
             svg.append(el("line", { x1: LEFT, x2: RIGHT, y1: Q_BOTTOM, y2: Q_BOTTOM, class: "axis" }));
             svg.append(el("line", { x1: LEFT, x2: LEFT, y1: Q_TOP, y2: Q_BOTTOM, class: "axis" }));
+
+            // 横軸（年）の目盛り。定量グラフは常に画面上に固定されるため、
+            // 下段の年表の目盛りが見えていなくても、ここで年を確認できるようにする。
+            [minYear(), 1960, 1970, 1980, 1990, 2000, 2010, 2020, maxYear()]
+                .filter((y, i, arr) => arr.indexOf(y) === i && y >= minYear() && y <= maxYear())
+                .forEach((y) => {
+                    svg.append(el("text", { x: x(y), y: Q_BOTTOM + 16, "text-anchor": "middle", class: "tick" }, String(y)));
+                });
 
             const values = metricValues();
             const vmax = (Math.max(...values.map((d) => d.value)) * 1.08) || 1;
@@ -792,6 +808,8 @@
             const layout = computeLayout();
             const H = layout.totalHeight;
             svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+            svg.setAttribute("width", W);
+            svg.setAttribute("height", H);
 
             const gridLayer = el("g", { class: "gridLayer" });
             const laneLayer = el("g", { class: "laneLayer" });
@@ -819,10 +837,9 @@
                 turnLayer.append(el("line", { x1: xx, x2: xx, y1: 0, y2: H - 30, class: "turn" }));
             });
 
-            layout.laneInfos.forEach(({ lane, top, height, center }, idx) => {
-                if (idx % 2 === 1) {
-                    laneLayer.append(el("rect", { x: 0, y: top, width: W, height, class: "lane-band" }));
-                }
+            layout.laneInfos.forEach(({ lane, top, height, center }) => {
+                const color = DATA.palette[lane.split("｜")[0]] || "#8a97a3";
+                laneLayer.append(el("rect", { x: 0, y: top, width: W, height, fill: color, "fill-opacity": 0.08 }));
                 laneLayer.append(el("line", { x1: 0, x2: W, y1: top + height, y2: top + height, class: "grid" }));
 
                 const label = el(
@@ -831,7 +848,7 @@
                         x: 8,
                         y: center + 4,
                         class: "lane-label" + (activeLane === lane ? " selected" : ""),
-                        fill: DATA.palette[lane.split("｜")[0]] || "currentColor"
+                        fill: color
                     },
                     lane
                 );
@@ -846,26 +863,105 @@
                 laneLayer.append(hit);
             });
 
-            layout.boxes.forEach(({ e, x: bx, y: by, w, h, lines }) => {
+            // 出来事：ふだんは1行だけ表示し、はみ出した部分は隠す。
+            // マウスオーバーで隠れた部分までゆっくり横スクロールして読めるようにし、
+            // クリックすると全文を折り返した吹き出しを開閉する。
+            layout.boxes.forEach(({ e, i, x: bx, y: by }) => {
                 const color = DATA.palette[e.major] || "#466a8a";
-                const group = el("g", { class: "eventbox" });
-                group.append(
-                    el("rect", {
-                        x: bx, y: by, width: w, height: h, rx: 3,
-                        fill: color, "fill-opacity": 0.12, stroke: color, "stroke-width": 1
-                    })
-                );
-                group.append(el("circle", { cx: bx + 6, cy: by + h / 2, r: 3, fill: color }));
-                lines.forEach((line, j) => {
-                    group.append(
-                        el("text", { x: bx + BOX_PAD + 7, y: by + BOX_PAD + 4 + j * LINE_H, class: "eventtext" }, line)
-                    );
+                const text = e.title;
+                const textX = bx + 12;
+                const innerWidth = BOX_W - 12 - BOX_INNER_PAD;
+
+                const clipId = `clip-${i}`;
+                const clip = el("clipPath", { id: clipId });
+                clip.append(el("rect", { x: bx, y: by - LINE_H, width: BOX_W, height: LINE_H + 4 }));
+                eventLayer.append(clip);
+
+                const group = el("g", { class: "eventbox", style: "cursor:pointer" });
+                group.append(el("circle", { cx: bx + 4, cy: by, r: 3, fill: color }));
+
+                const label = el("text", { x: textX, y: by + 4, class: "eventtext" }, text);
+                label.setAttribute("clip-path", `url(#${clipId})`);
+                group.append(label);
+
+                const overflow = Math.max(0, measureWidth(text) - innerWidth);
+                group.addEventListener("mouseenter", () => {
+                    if (overflow <= 0) return;
+                    const duration = Math.min(8, 1.5 + overflow / 40);
+                    label.style.transition = `transform ${duration}s linear`;
+                    label.style.transform = `translateX(${-overflow}px)`;
                 });
-                if (e.url) {
-                    group.style.cursor = "pointer";
-                    group.addEventListener("click", () => window.open(e.url, "_blank", "noreferrer"));
-                }
+                group.addEventListener("mouseleave", () => {
+                    label.style.transition = "transform 0.2s ease-out";
+                    label.style.transform = "translateX(0)";
+                });
+                group.addEventListener("click", () => {
+                    expanded.has(i) ? expanded.delete(i) : expanded.add(i);
+                    renderExpanded(layout);
+                });
+
                 eventLayer.append(group);
+            });
+
+            renderExpanded(layout);
+        }
+
+        // クリックで開いた出来事の全文吹き出しを表示する
+        function renderExpanded(layout) {
+            const svg = document.getElementById("timelineSvg");
+            let expandLayer = svg.querySelector(".expandLayer");
+            if (!expandLayer) {
+                expandLayer = el("g", { class: "expandLayer" });
+                svg.append(expandLayer);
+            }
+            expandLayer.innerHTML = "";
+
+            const H = layout.totalHeight;
+            const BW = 260;
+            const placed = [];
+            [...expanded].forEach((i) => {
+                const box = layout.boxes.find((b) => b.i === i);
+                if (!box) return;
+                const e = box.e;
+                const color = DATA.palette[e.major] || "#466a8a";
+
+                // タイトル → 詳細説明 → 引用文の順に、まとめて折り返して表示する
+                const parts = [e.title];
+                if (e.detail) parts.push(e.detail);
+                if (e.quote) parts.push(`「${e.quote}」`);
+                const lines = parts.flatMap((p) => wrapToWidth(p, BW - 16));
+                const bh = 10 + lines.length * LINE_H + (e.source || e.url ? LINE_H : 0);
+
+                let by = box.y + LINE_H + 6;
+                let bx = Math.min(RIGHT - BW, Math.max(LEFT, box.x));
+                let guard = 0;
+                while (
+                    placed.some((p) => bx < p.x + p.w + 6 && bx + BW + 6 > p.x && by < p.y + p.h + 6 && by + bh + 6 > p.y) &&
+                    guard++ < 40
+                ) {
+                    by += bh + 8;
+                }
+                by = Math.max(0, Math.min(H - 30 - bh, by));
+                placed.push({ x: bx, y: by, w: BW, h: bh });
+
+                const group = el("g", { class: "expandbubble" });
+                group.append(el("rect", { x: bx, y: by, width: BW, height: bh, rx: 5, fill: color, "fill-opacity": 0.12, stroke: color }));
+                lines.forEach((line, j) => group.append(el("text", { x: bx + 8, y: by + 15 + j * LINE_H, class: "eventtext" }, line)));
+                if (e.source || e.url) {
+                    const y = by + 15 + lines.length * LINE_H;
+                    const srcText = `出典：${e.source || "未入力"}`;
+                    group.append(el("text", { x: bx + 8, y, class: "eventtext" }, srcText));
+                    if (e.url) {
+                        const link = el("text", { x: bx + 8 + measureWidth(srcText) + 8, y, class: "expandlink" }, "URLを開く ↗");
+                        link.addEventListener("click", (ev) => { ev.stopPropagation(); window.open(e.url, "_blank", "noreferrer"); });
+                        group.append(link);
+                    }
+                }
+                const close = el("text", { x: bx + BW - 10, y: by + 14, "text-anchor": "middle", class: "expandclose" }, "×");
+                group.append(close);
+                group.addEventListener("click", () => { expanded.delete(i); renderExpanded(layout); });
+
+                expandLayer.append(group);
             });
         }
 

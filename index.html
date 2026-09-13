@@ -451,118 +451,31 @@
     <script>
         "use strict";
 
+        // 実際のデータはCSVから読み込むため、初期値は空にしておく。
+        // (以前はここにポケベルのサンプルデータを直接書いていたが、
+        //  CSV読み込みが動くようになったので不要になった)
         let DATA = {
-            "quant": [
-                { "date": "1988-01-01", "series": "ポケベル加入数", "value": 3519589 },
-                { "date": "1989-01-01", "series": "ポケベル加入数", "value": 4246612 },
-                { "date": "1990-01-01", "series": "ポケベル加入数", "value": 5082452 },
-                { "date": "1991-01-01", "series": "ポケベル加入数", "value": 5911377 },
-                { "date": "1992-01-01", "series": "ポケベル加入数", "value": 6688634 },
-                { "date": "1993-01-01", "series": "ポケベル加入数", "value": 8063627 },
-                { "date": "1994-01-01", "series": "ポケベル加入数", "value": 9353249 },
-                { "date": "1995-01-01", "series": "ポケベル加入数", "value": 10610549 },
-                { "date": "1996-01-01", "series": "ポケベル加入数", "value": 10074304 },
-                { "date": "1997-01-01", "series": "ポケベル加入数", "value": 7115702 },
-                { "date": "1998-01-01", "series": "ポケベル加入数", "value": 3765686 },
-                { "date": "1999-01-01", "series": "ポケベル加入数", "value": 2071003 },
-                { "date": "2000-01-01", "series": "ポケベル加入数", "value": 1439206 },
-                { "date": "2001-01-01", "series": "ポケベル加入数", "value": 1136930 },
-                { "date": "2002-01-01", "series": "ポケベル加入数", "value": 954986 },
-                { "date": "2003-01-01", "series": "ポケベル加入数", "value": 804964 },
-                { "date": "2004-01-01", "series": "ポケベル加入数", "value": 626274 },
-                { "date": "2005-01-01", "series": "ポケベル加入数", "value": 502130 },
-                { "date": "2006-01-01", "series": "ポケベル加入数", "value": 163227 },
-                { "date": "2007-01-01", "series": "ポケベル加入数", "value": 160919 },
-                { "date": "2008-01-01", "series": "ポケベル加入数", "value": 157702 },
-                { "date": "2009-01-01", "series": "ポケベル加入数", "value": 152578 },
-                { "date": "2010-01-01", "series": "ポケベル加入数", "value": 146193 },
-                { "date": "2011-01-01", "series": "ポケベル加入数", "value": 150571 },
-                { "date": "2012-01-01", "series": "ポケベル加入数", "value": 148542 }
+            quant: [],
+            events: [],
+            turning_points: [
+                { date: "1995-01-01", label: "加入数ピーク\n1,061万件" },
+                { date: "1997-01-01", label: "急減期\n競合サービスへ移行" }
             ],
-            "events": [
-                { "year": 1986, "date": "1986-01-01", "major": "仮説・メモ", "minor": "", "lane": "仮説・メモ", "title": "サービス開始年の検証", "detail": "ポケベルの商用化・サービス開始時期に関する考察とメモ。", "quote": "", "source": "", "url": "" },
-                { "year": 1995, "date": "1995-01-01", "major": "仮説・メモ", "minor": "", "lane": "仮説・メモ", "title": "普及ピークと衰退の始まり", "detail": "1995年のピーク到達後、PHSの登場と普及により加入数が急速に減少。", "quote": "", "source": "", "url": "" },
-                { "year": 2025, "date": "2025-01-01", "major": "仮説・メモ", "minor": "", "lane": "仮説・メモ", "title": "レトロリバイバル商品の登場", "detail": "懐古ブームに伴い、ポケベル風の玩具やガジェットなどのリバイバル商品が登場。", "quote": "", "source": "", "url": "" },
-                { "year": 1958, "date": "1958-01-01", "major": "サービス", "minor": "(米国)ポケベル", "lane": "サービス｜(米国)ポケベル", "title": "米国で初ポケベル開始", "detail": "米国で初の無線呼び出し「ベルボーイ」の運用が開始される。初期はオペレーター経由で呼び出す仕組みだった。", "quote": "「ベルボーイ」が開始当時は交換手に呼出番号を伝えるもの", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1995, "date": "1995-01-01", "major": "サービス", "minor": "(米国)ポケベル", "lane": "サービス｜(米国)ポケベル", "title": "米国で双方向ポケベル開始", "detail": "米国で文字の返信が可能な簡易双方向通信サービスが開始。日本では導入に至らなかった。", "quote": "双方向ポケベル(簡易双方向通信サービス)開始。日本では実用化されなかった。", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1986, "date": "1986-01-01", "major": "サービス", "minor": "(国内)ポケベル", "lane": "サービス｜(国内)ポケベル", "title": "新規事業者（IDO・DDI）参入", "detail": "通信自由化に伴い、IDOやDDIなどの新規通信事業者がポケベル市場へ参入。", "quote": "IDO(日本移動通信)、DDI(第二電電・現KDDI)参入始まる", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 2007, "date": "2007-01-01", "major": "サービス", "minor": "(国内)ポケベル", "lane": "サービス｜(国内)ポケベル", "title": "NTTドコモサービス終了", "detail": "加入数の減少に伴い、最大手であったNTTドコモがポケベル事業から完全撤退。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1968, "date": "1968-01-01", "major": "サービス", "minor": "(国内)ポケベル", "lane": "サービス｜(国内)ポケベル", "title": "電電公社がポケベル商用開始", "detail": "日本電電公社が東京23区において日本初のポケットベル商用サービスをスタート。", "quote": "電電公社(現NTTドコモ)、東京23区でポケベル商用開始", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1986, "date": "1986-01-01", "major": "サービス", "minor": "(国内)ポケベル", "lane": "サービス｜(国内)ポケベル", "title": "コンビニ・駅へ販売網拡大", "detail": "端末の入手が容易になり、一般ユーザーや若年層へと普及する下地が整った。", "quote": "エリア拡大販売ルートがスーパー、コンビニ、駅まで拡大", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1999, "date": "1999-01-01", "major": "サービス", "minor": "(国内)ポケベル", "lane": "サービス｜(国内)ポケベル", "title": "基本料金無料プランの登場", "detail": "携帯電話・PHSへの移行が進む中、生き残りをかけた基本料無料化施策などが実施された。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 2007, "date": "2007-01-01", "major": "サービス", "minor": "(国内)ポケベル", "lane": "サービス｜(国内)ポケベル", "title": "防災・医療等で限定運用継続", "detail": "個人向けサービス終了後も、電波の届きやすさを活かした防災行政無線や医療機関用途へ特化。", "quote": "防災分野や無線LAN環境での特殊用途に限り運用", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1978, "date": "1978-01-01", "major": "サービス", "minor": "(国内)自動車電話", "lane": "サービス｜(国内)自動車電話", "title": "自動車電話サービス開始", "detail": "初となる車載移動電話が開始されたが高価格なため、個人用通信としてはポケベルが主流であり続けた。", "quote": "料金が非常に高額でポケットベルが唯一の個人向けの移動体通信", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1995, "date": "1995-01-01", "major": "サービス", "minor": "(国内)PHS", "lane": "サービス｜(国内)PHS", "title": "国内PHSサービス開始", "detail": "携帯電話より低価格で通話・通信が可能なPHSの商用サービスがスタート。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 2008, "date": "2008-01-01", "major": "サービス", "minor": "(国内)PHS", "lane": "サービス｜(国内)PHS", "title": "PHSサービス順次終了へ", "detail": "携帯電話（3G）の普及に伴い、PHSサービスも縮小・順次終了に向かった。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1997, "date": "1997-01-01", "major": "サービス", "minor": "(国内)携帯電話", "lane": "サービス｜(国内)携帯電話", "title": "携帯のショートメール開始", "detail": "携帯電話どうしで短いテキストメッセージを送受信できるSMS機能が登場。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1999, "date": "1999-01-01", "major": "サービス", "minor": "(国内)携帯電話", "lane": "サービス｜(国内)携帯電話", "title": "NTTドコモ「iモード」開始", "detail": "携帯電話でのウェブ閲覧やEメール送受信を可能にし、モバイルネット社会を一気に加速させた。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1978, "date": "1978-01-01", "major": "回線速度", "minor": "", "lane": "回線速度", "title": "ポケベル回線のデジタル化", "detail": "通信容量拡大のため280MHz帯でのデジタル方式呼び出しが導入された。", "quote": "一般電話、携帯電話に先立ってデジタル化 280MHz", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1987, "date": "1987-01-01", "major": "回線速度", "minor": "", "lane": "回線速度", "title": "400MHz帯の追加導入", "detail": "利用者急増に対応するため、新たな周波数帯が割り当てられた。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1989, "date": "1989-01-01", "major": "回線速度", "minor": "", "lane": "回線速度", "title": "1200MHz帯への拡張", "detail": "送信速度の高速化と情報量の拡大に対応した周波数帯の利用が開始された。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1968, "date": "1968-01-01", "major": "機能", "minor": "ポケベル", "lane": "機能｜ポケベル", "title": "トーン呼び出し機能", "detail": "音だけで連絡の有無を知らせ、利用者が公衆電話等から折り返し電話する方式。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1986, "date": "1986-01-01", "major": "機能", "minor": "ポケベル", "lane": "機能｜ポケベル", "title": "数字送信・表示機能の導入", "detail": "電話番号や数字の受取が可能になり、公衆電話から数字を入力して相手に伝える文化が誕生。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1991, "date": "1991-01-01", "major": "機能", "minor": "ポケベル", "lane": "機能｜ポケベル", "title": "自由文字（カナ）表示機能", "detail": "語呂合わせだけでなく、直接文章をテキスト送信・画面受話が可能となった。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1996, "date": "1996-01-01", "major": "機能", "minor": "ポケベル", "lane": "機能｜ポケベル", "title": "漢字表示機能の対応", "detail": "表現力が向上し、より明確なビジネス・日常メッセージのやり取りが可能になった。", "quote": "", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1995, "date": "1995-01-01", "major": "機能", "minor": "PHS", "lane": "機能｜PHS", "title": "PHSへの急速なユーザー移行", "detail": "通話と双方向メールが安価に利用できるPHSの登場により、ポケベル市場からのシフトが加速。", "quote": "ＰＨＳは、携帯電話に比べて料金が安いこと、ポケベルに比べて双方向の通話やメールができることから、急速にポケベル利用者がＰＨＳに移動するようになった", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1985, "date": "1985-01-01", "major": "政策", "minor": "", "lane": "政策", "title": "通信自由化と無線呼出局改称", "detail": "法律上の位置づけが変更され、文字情報等の送信解禁とともに設備体制が整備された。", "quote": "音響のみならず文字その他の情報も送出できるものとなった。信号報知局は無線呼出局と改称された。", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1968, "date": "1968-01-01", "major": "人", "minor": "", "lane": "人", "title": "ビジネス層・医療関係の利用", "detail": "導入初期は端末・基本料が高額であり、業務上の緊急連絡手段として限定的に活用された。", "quote": "利用者は外出の多い営業部員、経営者、医療関係者に限られていた", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1986, "date": "1986-01-01", "major": "人", "minor": "", "lane": "人", "title": "女子高生層への爆発的普及", "detail": "コミュニケーションツールとしての価値を見出した女子高生の間でポケベルが一気にブーム化。", "quote": "これに飛びついたのが女子高生である", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1992, "date": "1992-01-01", "major": "人", "minor": "", "lane": "人", "title": "数字語呂合わせブーム到来", "detail": "限られた数字表示機能を工夫し、「0840（おはよう）」等の暗号的コミュニケーションが定着。", "quote": "数字の語呂合わせでメッセージを送る一種の言葉遊びが1992年頃から流行し始め", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1995, "date": "1995-01-01", "major": "人", "minor": "", "lane": "人", "title": "「ピッチ」ブームと移行", "detail": "ポケベルブームの主役だった女子高生たちが、通話もできるPHSへ愛用端末をシフトさせた。", "quote": "女子高生はＰＨＳを「ピッチ」と呼び愛用するようになった。", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1986, "date": "1986-01-01", "major": "文化", "minor": "", "lane": "文化", "title": "語呂合わせによる複雑な会話", "detail": "制限された入力環境の中で若者独自の文字コードや省略文化が形成された。", "quote": "彼女らは、数字しか利用できない環境でも、「０８４０＝おはよう」のような語呂合わせや、仲間内での略語を作り出して、かなり複雑な会話を行っていた。", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1986, "date": "1986-01-01", "major": "文化", "minor": "", "lane": "文化", "title": "電話とポケベルの相互連携", "detail": "公衆電話から送られたデータがポケベルに着信するシステムにより、個人間ネットワークが成立。", "quote": "ポケベルにデータを送ることにより、送信者の電話番号や用件分類を伝えることができる。すなわち、不特定多数の電話とポケベルの間のネットワークが出現したのである。", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1986, "date": "1986-01-01", "major": "文化", "minor": "", "lane": "文化", "title": "「ベル友」ブームの出現", "detail": "番号を交換し公衆電話等から頻繁にメッセージを送り合う人間関係・文化が定着した。", "quote": "携帯電話での「メル友」に相当する、「ベル友」ブームが出現した", "source": "ポケベルの歴史", "url": "https://www.kogures.com/hitoshi/history/keitai-pocket-bell/index.html" },
-                { "year": 1991, "date": "1991-01-01", "major": "文化", "minor": "", "lane": "文化", "title": "「ポケベル打ち」高速入力文化", "detail": "2タッチ入力方式を記憶し、公衆電話のキーを素早く叩く技能が大きな注目を集めた。", "quote": "カナのフリーメッセージ入力には「ポケベル打ち」というコード入力が必要で、一種の特技として電話機のテンキーで高速にこれができる人はユーザーから崇められ、テレビ等のメディアで驚きを持って紹介される事もあった。", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1991, "date": "1991-01-01", "major": "文化", "minor": "", "lane": "文化", "title": "女子高生「三種の神器」の一角", "detail": "90年代半ばのコギャル文化を象徴する必須アイテムとしてポケベルが君臨した。", "quote": "この頃ポケベル・ルーズソックス・プリクラ手帳は女子高生の三種の神器と呼ばれる事もあり、女子高生のマストアイテムとしての地位を確固たるものとしていた。", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1991, "date": "1991-01-01", "major": "文化", "minor": "", "lane": "文化", "title": "地方・親世代での警戒と不所有", "detail": "非行への懸念や実態の不透明さから保守的な家庭では所有が認められず、地域差が生じた。", "quote": "地方に目を向けるとポケベルは、自分自身が使った事が無いので得体が知れない、自分もポケベルはおろか携帯電話も持っていないのに子供にはまだ早い、非行に走るかもしれない等の理由から親世代からの評判は総じて良くなく、親から許しが出ないので持ちたくても持てず、あるいは周りで所有者が少なかったため実際にブームを感じる事無く不所有に終わる者も多かった。", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1993, "date": "1993-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "ドラマ『ポケベルが鳴らなくて』", "detail": "ポケベルを題材にした社会派ドラマと主題歌のヒットにより、ポケベルの認知度が一般社会に広く浸透。", "quote": "テレビドラマ「ポケベルが鳴らなくて」や同名の主題歌がヒット", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1996, "date": "1996-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "ドラマ『ピュア』でポケベル使用", "detail": "和久井映見主演のヒットドラマ劇中で、主人公同士の重要な連絡手段としてポケベルが描かれた。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1997, "date": "1997-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "ドラマ『当番弁護士 第3作』", "detail": "ポケベルや当時の援助交際社会問題を取り上げたサスペンスドラマが放映された。", "quote": "当番弁護士 第3作（1997年） 「金融業者殺しの無実を立証できるポケベル援助交際の女子高生を探せ", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1997, "date": "1997-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "ドラマ『職員室 第8作』", "detail": "学校現場と「ベル友」間の人間関係の軋轢を描いたドラマエピソード。", "quote": "職員室 第8作（1997年） 「裏切ったベル友", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1998, "date": "1998-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "『中学生日記』「ポケットベル」", "detail": "中学生の間にも広がりつつあったポケベルとコミュニケーションを扱った教育ドラマ。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1990, "date": "1990-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "『刑事コロンボ』にポケベル登場", "detail": "海外作品においてもポケベルがアリバイや連絡の小道具として使用された。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1991, "date": "1991-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "『ドラえもん』「伝言花火」", "detail": "遠隔でメッセージを伝えるひみつ道具として、当時のポケベル流行を反映したエピソードが放送。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1996, "date": "1996-01-01", "major": "文化", "minor": "ドラマ・作品", "lane": "文化｜ドラマ・作品", "title": "NHK『ベル友〜12文字の青春〜』", "detail": "短い文字数に思いを託す若者たちの「ベル友」現象に迫ったドキュメンタリー番組。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1994, "date": "1994-01-01", "major": "文化", "minor": "音楽", "lane": "文化｜音楽", "title": "楽曲『ポケベルNightは5643#』", "detail": "ポケベル打ちの番号列（5643#＝コロシテ＝夢中）をタイトルに冠したポップソング。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 2015, "date": "2015-01-01", "major": "文化", "minor": "音楽", "lane": "文化｜音楽", "title": "楽曲『1977年生まれの僕らは』", "detail": "1990年代半ばに青春期を過ごした世代の思い出としてポケベルが歌詞の中で描かれている。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1994, "date": "1994-01-01", "major": "文化", "minor": "音楽", "lane": "文化｜音楽", "title": "楽曲『渋谷で5時』", "detail": "「ポケベル鳴らして」の歌詞で知られる、当時の若者のリアルな待ち合わせ文化を描いたデュエット曲。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1997, "date": "1997-01-01", "major": "文化", "minor": "音楽", "lane": "文化｜音楽", "title": "楽曲『2色だけのパレット』", "detail": "液晶画面の2色表示などをモチーフとした楽曲表現。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1994, "date": "1994-01-01", "major": "文化", "minor": "音楽", "lane": "文化｜音楽", "title": "楽曲『あなただけ見つめてる』", "detail": "「ポケベル持たされた」というフレーズを通じて、当時の恋愛や束縛・連絡手段が描かれている。", "quote": "", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 1987, "date": "1987-01-01", "major": "社会課題", "minor": "", "lane": "社会課題", "title": "親子の希薄化・非行問題の指摘", "detail": "深夜の連れ出しや見知らぬ人物との通信によるトラブルが懸念され、学校や社会で議論となった。", "quote": "個人での契約も出現し、子供に持たせる親も現れるようになり、親子関係の希薄化・非行問題との関連が指摘されるように", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" },
-                { "year": 2024, "date": "2024-01-01", "major": "社会課題", "minor": "", "lane": "社会課題", "title": "レバノンでのポケベル爆発事件", "detail": "爆発物を仕込まれたポケベル端末が遠隔信号で一斉爆発し、多数の死傷者を出す国際事件となった。", "quote": "レバノンでのポケベル爆発(遠隔操作で一斉に爆発する仕組み)", "source": "無線呼び出し", "url": "https://ja.wikipedia.org/wiki/%E7%84%A1%E7%B7%9A%E5%91%BC%E3%81%B3%E5%87%BA%E3%81%97" }
-            ],
-            "turning_points": [
-                { "date": "1995-01-01", "label": "加入数ピーク\n1,061万件" },
-                { "date": "1997-01-01", "label": "急減期\n競合サービスへ移行" }
-            ],
-            "palette": {
-                "仮説・メモ": "#8A8F98",
-                "サービス": "#267C8B",
-                "回線速度": "#4E8DBF",
-                "機能": "#D07A28",
-                "政策": "#7B61A8",
-                "人": "#C45167",
-                "文化": "#B5842B",
-                "社会課題": "#6C7A3E"
-            },
-            "lanes": [
-                "仮説・メモ",
-                "サービス｜(米国)ポケベル",
-                "サービス｜(国内)ポケベル",
-                "サービス｜(国内)自動車電話",
-                "サービス｜(国内)PHS",
-                "サービス｜(国内)携帯電話",
-                "回線速度",
-                "機能｜ポケベル",
-                "機能｜PHS",
-                "政策",
-                "人",
-                "文化",
-                "文化｜ドラマ・作品",
-                "文化｜音楽",
-                "社会課題"
-            ]
+            lanes: []
         };
+
+        // 大分類ごとの色は、以前は「サービス」「政策」のようなポケベル固有の
+        // カテゴリ名に直接ひもづけて決めていたが、別のテーマのCSVを読み込んだときに
+        // 対応できないため、読み込んだデータに出てくる順に自動で色を割り当てる方式にした。
+        const CATEGORY_COLORS = [
+            "#7B61A8", "#267C8B", "#D07A28", "#C45167", "#4776B4",
+            "#6C7A3E", "#B5842B", "#4E8DBF", "#8A8F98", "#A0527A"
+        ];
+        function colorForMajor(major) {
+            const majors = [...new Set(DATA.events.map((e) => e.major))];
+            const idx = majors.indexOf(major);
+            return idx === -1 ? "#466a8a" : CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
+        }
 
         const EVENT_CSV_HEADERS = ["年（必須）", "大分類（必須）", "小分類", "出来事タイトル（必須）", "詳細説明", "引用文", "出典", "URL"];
         const QUANT_CSV_HEADERS = ["年（必須）", "値", "系列名（全行同じ名前）（必須）"];
@@ -726,7 +639,7 @@
                 });
 
             const values = metricValues();
-            const vmax = (Math.max(...values.map((d) => d.value)) * 1.08) || 1;
+            const vmax = values.length ? (Math.max(...values.map((d) => d.value)) * 1.08 || 1) : 1;
             const yq = (v) => Q_BOTTOM - (v / vmax) * (Q_BOTTOM - Q_TOP);
 
             [0, 0.5, 1].forEach((t) => {
@@ -809,7 +722,7 @@
             });
 
             layout.laneInfos.forEach(({ lane, top, height, center }) => {
-                const color = DATA.palette[lane.split("｜")[0]] || "#8a97a3";
+                const color = colorForMajor(lane.split("｜")[0]);
                 laneLayer.append(el("rect", { x: 0, y: top, width: W, height, fill: color, "fill-opacity": 0.08 }));
                 laneLayer.append(el("line", { x1: 0, x2: W, y1: top + height, y2: top + height, class: "grid" }));
 
@@ -838,7 +751,7 @@
             // クリックすると全文を折り返した吹き出しを開閉する。
             // ※ x,y の y は「行の上端」を表す。文字のベースラインではないので注意。
             layout.boxes.forEach(({ e, i, x: bx, y: by }) => {
-                const color = DATA.palette[e.major] || "#466a8a";
+                const color = colorForMajor(e.major);
                 const text = e.title;
                 const textX = bx + 12;
                 const baselineY = by + LINE_H - 4; // 行の下寄りにベースラインを置く
@@ -888,7 +801,7 @@
             const H = layout.totalHeight;
             const BW = 260;
             const e = box.e;
-            const color = DATA.palette[e.major] || "#466a8a";
+            const color = colorForMajor(e.major);
 
             // タイトル → 詳細説明 → 引用文の順に、まとめて折り返して表示する
             const parts = [e.title];
@@ -939,8 +852,8 @@
                 .forEach((e) => {
                     const card = document.createElement("div");
                     card.className = "event-card";
-                    card.style.background = (DATA.palette[e.major] || "#466a8a") + "1a";
-                    card.style.borderLeftColor = DATA.palette[e.major] || "#466a8a";
+                    card.style.background = colorForMajor(e.major) + "1a";
+                    card.style.borderLeftColor = colorForMajor(e.major);
 
                     let html = `<strong>${e.year}年 ｜ ${e.title}</strong>`;
                     if (e.detail) html += `<div>${e.detail}</div>`;

@@ -913,27 +913,6 @@
             });
         }
 
-        function drawGuide(svgId, labelY, top, bottom) {
-            const svg = document.getElementById(svgId);
-            const layer = svg.querySelector(".guideLayer");
-            if (!layer) return;
-            layer.innerHTML = "";
-            if (hoverYear == null) return;
-
-            const xx = x(hoverYear);
-            layer.append(el("line", { x1: xx, x2: xx, y1: top, y2: bottom, class: "guideline" }));
-
-            if (labelY == null) return;
-
-            const values = metricValues();
-            const nearest = values.length
-                ? values.reduce((a, b) => (Math.abs(+a.date.slice(0, 4) - hoverYear) < Math.abs(+b.date.slice(0, 4) - hoverYear) ? a : b))
-                : null;
-            const text = nearest ? `${hoverYear}年｜${formatValue(nearest.value)}` : `${hoverYear}年`;
-            const labelX = Math.min(RIGHT - 150, xx + 6);
-            const clampedY = Math.max(top + 12, Math.min(bottom - 4, labelY));
-            layer.append(el("text", { x: labelX, y: clampedY, class: "guidetext" }, text));
-        }
 
         function startTitleEdit(titleTextEl) {
             const svg = document.getElementById("quantSvg");
@@ -1009,6 +988,105 @@
                 const values = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
                 return Object.fromEntries(head.map((h, i) => [h, values[i] || ""]));
             });
+        }
+
+        /**
+ * 堅牢なCSVパース関数
+ * - 行頭の '#' コメント行および空行の自動スキップ
+ * - ダブルクォーテーション (") で囲まれたカンマ区切りセルに対応
+ */
+        function parseCustomCSV(text) {
+            const lines = text.split(/\r\n|\n/);
+            const data = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+
+                // 空行および '#' で始まるコメント行をスキップ
+                if (!line || line.startsWith('#')) {
+                    continue;
+                }
+
+                // ダブルクォーテーションを考慮したセル分割
+                const row = [];
+                let insideQuotes = false;
+                let currentCell = '';
+
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+
+                    if (char === '"') {
+                        insideQuotes = !insideQuotes;
+                    } else if (char === ',' && !insideQuotes) {
+                        row.push(currentCell.trim());
+                        currentCell = '';
+                    } else {
+                        currentCell += char;
+                    }
+                }
+                row.push(currentCell.trim());
+
+                // セルの前後のダブルクォーテーションを削除し、エスケープされた""を"に戻す
+                const cleanedRow = row.map(cell =>
+                    cell.replace(/^"|"$/g, '').replace(/""/g, '"')
+                );
+
+                data.push(cleanedRow);
+            }
+            return data;
+        }
+
+        /**
+         * 学生向けエラー表示UIバナー
+         */
+        function showCSVErrNotice(message) {
+            let notice = document.getElementById('csv-error-notice');
+            if (!notice) {
+                notice = document.createElement('div');
+                notice.id = 'csv-error-notice';
+                notice.style.cssText = `
+            position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+            background-color: #ff4d4f; color: white; padding: 12px 24px;
+            border-radius: 8px; font-weight: bold; font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 10000;
+            display: flex; align-items: center; gap: 10px;
+        `;
+                document.body.appendChild(notice);
+            }
+            notice.innerHTML = `<span>⚠️ CSV読み込み注意: ${message}</span>`;
+            setTimeout(() => { if (notice) notice.remove(); }, 7000);
+        }
+
+        /**
+         * 外部CSVファイルを非同期取得してデータオブジェクトを生成する処理
+         */
+        async function loadExternalCSVFiles(eventCsvPath, valueCsvPath) {
+            try {
+                const [eventRes, valueRes] = await Promise.all([
+                    fetch(eventCsvPath),
+                    fetch(valueCsvPath)
+                ]);
+
+                if (!eventRes.ok) throw new Error(`出来事CSVが見つかりません (${eventRes.status})`);
+                if (!valueRes.ok) throw new Error(`定量CSVが見つかりません (${valueRes.status})`);
+
+                const eventText = await eventRes.text();
+                const valueText = await valueRes.text();
+
+                const rawEvents = parseCustomCSV(eventText);
+                const rawValues = parseCustomCSV(valueText);
+
+                if (rawEvents.length <= 1) {
+                    showCSVErrNotice("出来事CSVに有効なデータ行が含まれていません。");
+                }
+
+                return { rawEvents, rawValues };
+
+            } catch (err) {
+                console.error("CSV Load Error:", err);
+                showCSVErrNotice(err.message);
+                return null;
+            }
         }
 
         function findField(row, ...names) {
@@ -1169,6 +1247,102 @@
 
         redraw();
         setupHoverGuides();
+
+        /**
+ * 2次元配列(CSV)をヘッダー名をキーとするオブジェクト配列に変換
+ */
+        function parseCSVToObjects(rawMatrix) {
+            if (!rawMatrix || rawMatrix.length < 2) return [];
+            const headers = rawMatrix[0];
+            return rawMatrix.slice(1).map(row => {
+                const obj = {};
+                headers.forEach((header, index) => {
+                    obj[header] = row[index] !== undefined ? row[index] : '';
+                });
+                return obj;
+            });
+        }
+
+        /**
+ * 外部CSVを読み込み、DATAオブジェクトの構造へマッピングして初期化するメイン関数
+ */
+        async function initApp() {
+            // 1. 外部CSVファイルの非同期取得（ファイルが存在しない場合は初期データで起動）
+            const csvData = await loadExternalCSVFiles('出来事CSVひな型.csv', '定量CSVひな型.csv');
+            if (!csvData) return;
+
+            // 2. CSVデータをオブジェクト配列へ変換
+            const parsedEvents = parseCSVToObjects(csvData.rawEvents);
+            const parsedValues = parseCSVToObjects(csvData.rawValues);
+
+            // 3. データが存在する場合のみ、内部構造に合わせてマッピング変換して更新
+            if (parsedEvents.length > 0) {
+                DATA.events = parsedEvents.map(r => {
+                    const year = +findField(r, "年");
+                    const major = findField(r, "大分類");
+                    const minor = findField(r, "小分類");
+                    return {
+                        year: year || 1990,
+                        date: `${year || 1990}-01-01`,
+                        major: major || "その他",
+                        minor: minor,
+                        lane: minor ? `${major}｜${minor}` : (major || "その他"),
+                        title: findField(r, "出来事タイトル", "出来事"),
+                        detail: findField(r, "詳細説明", "説明"),
+                        quote: findField(r, "引用文"),
+                        source: findField(r, "出典"),
+                        url: findField(r, "URL")
+                    };
+                });
+                DATA.lanes = [...new Set(DATA.events.map((e) => e.lane))];
+            }
+
+            if (parsedValues.length > 0) {
+                DATA.quant = parsedValues.map(r => {
+                    const year = findField(r, "年");
+                    return {
+                        date: `${year}-01-01`,
+                        series: findField(r, "系列名（全行同じ名前）", "系列名"),
+                        value: +findField(r, "値") || 0
+                    };
+                });
+            }
+
+            // 4. 再描画を実行
+            redraw();
+        }
+
+        /**
+         * マウスに追従する時間軸ガイドラインの描画関数（NaNガード追加版）
+         */
+        function drawGuide(svgId, labelY, top, bottom) {
+            const svg = document.getElementById(svgId);
+            const layer = svg.querySelector(".guideLayer");
+            if (!layer) return;
+            layer.innerHTML = "";
+
+            // hoverYear が取得できない・NaN の場合は描画をスキップ（左端固定を防止）
+            if (hoverYear == null || Number.isNaN(hoverYear)) return;
+
+            const xx = x(hoverYear);
+            if (Number.isNaN(xx)) return; // 座標計算エラー時の安全策
+
+            layer.append(el("line", { x1: xx, x2: xx, y1: top, y2: bottom, class: "guideline" }));
+
+            if (labelY == null) return;
+
+            const values = metricValues();
+            const nearest = values.length
+                ? values.reduce((a, b) => (Math.abs(+a.date.slice(0, 4) - hoverYear) < Math.abs(+b.date.slice(0, 4) - hoverYear) ? a : b))
+                : null;
+            const text = nearest ? `${hoverYear}年｜${formatValue(nearest.value)}` : `${hoverYear}年`;
+            const labelX = Math.min(RIGHT - 150, xx + 6);
+            const clampedY = Math.max(top + 12, Math.min(bottom - 4, labelY));
+            layer.append(el("text", { x: labelX, y: clampedY, class: "guidetext" }, text));
+        }
+
+        // DOMの読み込み完了時に初期化処理を実行
+        document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
 

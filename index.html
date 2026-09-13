@@ -41,7 +41,6 @@
         body>h1,
         body>p.intro,
         body>.toolbar,
-        body>.metric-row,
         body>.tp-heading,
         body>#tpTags,
         body>#tpMode,
@@ -93,14 +92,6 @@
             background: white;
             color: var(--accent);
             border: 1px solid var(--accent);
-        }
-
-        .metric-row {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 13px;
-            margin: 8px 0;
         }
 
         .tp-heading {
@@ -182,6 +173,9 @@
             align-items: center;
             gap: 8px;
             margin: 8px 0;
+        }
+        .tp-dialog[hidden] {
+            display: none;
         }
 
         #wrap {
@@ -292,7 +286,7 @@
         }
 
         .chart-title {
-            font-size: 20px;
+            font-size: 17px;
             font-weight: 700;
             fill: var(--ink);
             cursor: text;
@@ -317,7 +311,6 @@
             }
 
             .toolbar,
-            .metric-row,
             .tp-heading,
             #tpTags,
             #tpMode,
@@ -425,14 +418,6 @@
         </div>
         <button id="csvClose" type="button">閉じる</button>
     </dialog>
-
-    <div class="metric-row">
-        <label for="metric">定量表示</label>
-        <select id="metric">
-            <option value="actual">ポケベル加入数（実数）</option>
-            <option value="index">ポケベル加入数（指数：1988年=100）</option>
-        </select>
-    </div>
 
     <div class="tp-heading">転換点</div>
     <div id="tpTags" class="tp-tags" aria-live="polite"></div>
@@ -586,14 +571,13 @@
         let activeLane = null;
         let tpMode = false;
         let hoverYear = null;
-        let hoverLocalY = { quant: null, timeline: null };
         let expandedIndex = null; // クリックで全文表示中の出来事の index（一度に1つだけ）
 
         const W = 1180;
         const LEFT = 235;
         const RIGHT = 1145;
 
-        const Q_TOP = 42;
+        const Q_TOP = 46;
         const Q_BOTTOM = 230;
         const Q_HEIGHT = 280;
 
@@ -698,18 +682,10 @@
         }
 
         function metricValues() {
-            const metric = document.getElementById("metric").value;
-            const raw = DATA.quant.filter((d) => Number.isFinite(d.value));
-            if (!raw.length) return [];
-            if (metric !== "index") return raw;
-            const base = raw[0].value;
-            return raw.map((d) => ({ ...d, value: (d.value / base) * 100 }));
+            return DATA.quant.filter((d) => Number.isFinite(d.value));
         }
         function formatValue(v) {
-            const metric = document.getElementById("metric").value;
-            return metric === "index"
-                ? v.toFixed(0)
-                : new Intl.NumberFormat("ja-JP").format(Math.round(v));
+            return new Intl.NumberFormat("ja-JP").format(Math.round(v));
         }
 
         function drawQuant() {
@@ -728,7 +704,7 @@
 
             svg.append(el("title", {}, "定量グラフ"));
 
-            const titleText = el("text", { x: LEFT + 10, y: 26, class: "chart-title" }, chartTitle);
+            const titleText = el("text", { x: LEFT + 10, y: 18, class: "chart-title" }, chartTitle);
             titleText.addEventListener("click", () => startTitleEdit(titleText));
             titleLayer.append(titleText);
 
@@ -774,11 +750,7 @@
                 quantLayer.append(el("text", { x: LEFT + 8, y: Q_TOP + 22, class: "turntext" }, "定量データなし（出来事のみ表示）"));
             }
 
-            const metric = document.getElementById("metric").value;
-            svg.append(
-                el("text", { x: LEFT, y: Q_TOP - 17, class: "tick" },
-                    metric === "index" ? "加入数指数（1988年=100）" : "ポケベル加入数（人）")
-            );
+            svg.append(el("text", { x: LEFT, y: Q_TOP - 6, class: "tick" }, "ポケベル加入数（人）"));
 
             DATA.turning_points.forEach((tp, i) => {
                 const yr = +tp.date.slice(0, 4);
@@ -992,8 +964,6 @@
 
             const yr = Math.round(minYear() + ((localX - LEFT) / (RIGHT - LEFT)) * (maxYear() - minYear()));
             hoverYear = Math.max(minYear(), Math.min(maxYear(), yr));
-            hoverLocalY = { quant: null, timeline: null };
-            hoverLocalY[part] = localY;
 
             drawGuide("quantSvg", part === "quant" ? localY : null, Q_TOP, Q_BOTTOM);
             drawGuide("timelineSvg", part === "timeline" ? localY : null, 0, timelineHeight() - 30);
@@ -1074,15 +1044,6 @@
                 }
             };
             document.getElementById("tpCancel").onclick = () => { dialog.hidden = true; };
-        }
-
-        function parseCsv(text) {
-            const lines = text.replace(/\r/g, "").split("\n").filter(Boolean);
-            const head = lines.shift().split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
-            return lines.map((line) => {
-                const values = line.split(",").map((v) => v.trim().replace(/^"|"$/g, ""));
-                return Object.fromEntries(head.map((h, i) => [h, values[i] || ""]));
-            });
         }
 
         /**
@@ -1193,41 +1154,50 @@
             return "";
         }
 
+        // CSVの行データ（オブジェクト配列）を、DATA.events / DATA.quant の形式に変換する。
+        // ファイル選択での読み込み・外部CSVの自動取得のどちらからも、この2関数を共通で使う。
+        function mapRowsToEvents(rows) {
+            return rows.map((r, index) => {
+                const year = +findField(r, "年");
+                const major = findField(r, "大分類") || "その他";
+                const minor = findField(r, "小分類");
+                const rawTitle = findField(r, "出来事タイトル", "出来事", "タイトル", "名称");
+                const title = rawTitle && rawTitle.trim() !== "" ? rawTitle.trim() : `(タイトル未設定 #${index + 1})`;
+
+                return {
+                    year: year || 1990,
+                    date: `${year || 1990}-01-01`,
+                    major,
+                    minor,
+                    lane: minor ? `${major}｜${minor}` : major,
+                    title,
+                    detail: findField(r, "詳細説明", "詳細", "説明") || "",
+                    quote: findField(r, "引用文", "引用") || "",
+                    source: findField(r, "出典") || "",
+                    url: findField(r, "URL", "リンク") || ""
+                };
+            });
+        }
+        function mapRowsToQuant(rows) {
+            return rows.map((r) => {
+                const year = findField(r, "年");
+                return {
+                    date: `${year}-01-01`,
+                    series: findField(r, "系列名（全行同じ名前）", "系列名"),
+                    value: +findField(r, "値") || 0
+                };
+            });
+        }
+
         function loadCsv(file, type) {
             const reader = new FileReader();
             reader.onload = () => {
-                const rows = parseCsv(reader.result);
+                const rows = parseCSVToObjects(parseCustomCSV(reader.result));
                 if (type === "event") {
-                    DATA.events = rows.map((r, index) => {
-                        const year = +findField(r, "年");
-                        const major = findField(r, "大分類") || "その他";
-                        const minor = findField(r, "小分類");
-                        const rawTitle = findField(r, "出来事タイトル", "出来事", "タイトル", "名称");
-                        const title = rawTitle && rawTitle.trim() !== "" ? rawTitle.trim() : `(タイトル未設定 #${index + 1})`;
-
-                        return {
-                            year: year || 1990,
-                            date: `${year || 1990}-01-01`,
-                            major: major,
-                            minor: minor,
-                            lane: minor ? `${major}｜${minor}` : major,
-                            title: title,
-                            detail: findField(r, "詳細説明", "詳細", "説明") || "",
-                            quote: findField(r, "引用文", "引用") || "",
-                            source: findField(r, "出典") || "",
-                            url: findField(r, "URL", "リンク") || ""
-                        };
-                    });
+                    DATA.events = mapRowsToEvents(rows);
                     DATA.lanes = [...new Set(DATA.events.map((e) => e.lane))];
                 } else {
-                    DATA.quant = rows.map((r) => {
-                        const year = findField(r, "年");
-                        return {
-                            date: `${year}-01-01`,
-                            series: findField(r, "系列名"),
-                            value: +findField(r, "値") || 0
-                        };
-                    });
+                    DATA.quant = mapRowsToQuant(rows);
                 }
                 redraw();
             };
@@ -1331,7 +1301,6 @@
             timelineSvg.addEventListener("mouseleave", onChartLeave);
         }
 
-        document.getElementById("metric").addEventListener("change", redraw);
         document.getElementById("builderToggle").addEventListener("click", () => {
             updateCsvLinks();
             document.getElementById("csvDialog").showModal();
@@ -1376,42 +1345,13 @@
             const parsedValues = parseCSVToObjects(csvData.rawValues);
 
             // 3. データが存在する場合のみ、内部構造に合わせてマッピング変換して更新
-            // initApp() 内の DATA.events マッピング部分を以下に差し替え
+            //    （マッピングの中身は loadCsv() と共通の mapRowsToEvents / mapRowsToQuant を使う）
             if (parsedEvents.length > 0) {
-                DATA.events = parsedEvents.map((r, index) => {
-                    const year = +findField(r, "年");
-                    const major = findField(r, "大分類") || "その他";
-                    const minor = findField(r, "小分類");
-                    const rawTitle = findField(r, "出来事タイトル", "出来事", "タイトル", "名称");
-
-                    // タイトルが空の場合はエラーにせず、視覚的に気づけるフォールバックを設定
-                    const title = rawTitle && rawTitle.trim() !== "" ? rawTitle.trim() : `(タイトル未設定 #${index + 1})`;
-
-                    return {
-                        year: year || 1990,
-                        date: `${year || 1990}-01-01`,
-                        major: major,
-                        minor: minor,
-                        lane: minor ? `${major}｜${minor}` : major,
-                        title: title,
-                        detail: findField(r, "詳細説明", "詳細", "説明") || "",
-                        quote: findField(r, "引用文", "引用") || "",
-                        source: findField(r, "出典") || "",
-                        url: findField(r, "URL", "リンク") || ""
-                    };
-                });
+                DATA.events = mapRowsToEvents(parsedEvents);
                 DATA.lanes = [...new Set(DATA.events.map((e) => e.lane))];
             }
-
             if (parsedValues.length > 0) {
-                DATA.quant = parsedValues.map(r => {
-                    const year = findField(r, "年");
-                    return {
-                        date: `${year}-01-01`,
-                        series: findField(r, "系列名（全行同じ名前）", "系列名"),
-                        value: +findField(r, "値") || 0
-                    };
-                });
+                DATA.quant = mapRowsToQuant(parsedValues);
             }
 
             // 4. 再描画を実行

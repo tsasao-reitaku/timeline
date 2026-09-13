@@ -864,24 +864,27 @@
 
             // 出来事：ふだんは1行だけ表示し、はみ出した部分は隠す。
             // クリックすると全文を折り返した吹き出しを開閉する。
+            // ※ x,y の y は「行の上端」を表す。文字のベースラインではないので注意。
             layout.boxes.forEach(({ e, i, x: bx, y: by }) => {
                 const color = DATA.palette[e.major] || "#466a8a";
                 const text = e.title;
                 const textX = bx + 12;
+                const baselineY = by + LINE_H - 4; // 行の下寄りにベースラインを置く
+                const centerY = by + LINE_H / 2;
 
                 const clipId = `clip-${i}`;
                 const clip = el("clipPath", { id: clipId });
-                clip.append(el("rect", { x: bx, y: by - LINE_H, width: BOX_W, height: LINE_H + 4 }));
+                clip.append(el("rect", { x: bx, y: by, width: BOX_W, height: LINE_H }));
                 eventLayer.append(clip);
 
                 const group = el("g", { class: "eventbox", style: "cursor:pointer" });
 
                 // 見た目には何も出さない、行全体をクリックできるようにするための当たり判定
-                group.append(el("rect", { x: bx, y: by - LINE_H + 3, width: BOX_W, height: LINE_H, fill: "transparent" }));
+                group.append(el("rect", { x: bx, y: by, width: BOX_W, height: LINE_H, fill: "transparent" }));
 
-                group.append(el("circle", { cx: bx + 4, cy: by, r: 3, fill: color }));
+                group.append(el("circle", { cx: bx + 4, cy: centerY, r: 3, fill: color }));
 
-                const label = el("text", { x: textX, y: by + 4, class: "eventtext" }, text);
+                const label = el("text", { x: textX, y: baselineY, class: "eventtext" }, text);
                 label.setAttribute("clip-path", `url(#${clipId})`);
                 group.append(label);
 

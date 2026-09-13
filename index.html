@@ -587,7 +587,7 @@
         let tpMode = false;
         let hoverYear = null;
         let hoverLocalY = { quant: null, timeline: null };
-        let expanded = new Set(); // クリックで全文表示中の出来事の index
+        let expandedIndex = null; // クリックで全文表示中の出来事の index（一度に1つだけ）
 
         const W = 1180;
         const LEFT = 235;
@@ -889,7 +889,7 @@
                 group.append(label);
 
                 group.addEventListener("click", () => {
-                    expanded.has(i) ? expanded.delete(i) : expanded.add(i);
+                    expandedIndex = expandedIndex === i ? null : i;
                     renderExpanded(layout);
                 });
 
@@ -909,54 +909,46 @@
             }
             expandLayer.innerHTML = "";
 
+            if (expandedIndex == null) return;
+            const box = layout.boxes.find((b) => b.i === expandedIndex);
+            if (!box) return;
+
             const H = layout.totalHeight;
             const BW = 260;
-            const placed = [];
-            [...expanded].forEach((i) => {
-                const box = layout.boxes.find((b) => b.i === i);
-                if (!box) return;
-                const e = box.e;
-                const color = DATA.palette[e.major] || "#466a8a";
+            const e = box.e;
+            const color = DATA.palette[e.major] || "#466a8a";
 
-                // タイトル → 詳細説明 → 引用文の順に、まとめて折り返して表示する
-                const parts = [e.title];
-                if (e.detail) parts.push(e.detail);
-                if (e.quote) parts.push(`「${e.quote}」`);
-                const lines = parts.flatMap((p) => wrapToWidth(p, BW - 16));
-                const bh = 10 + lines.length * LINE_H + (e.source || e.url ? LINE_H : 0);
+            // タイトル → 詳細説明 → 引用文の順に、まとめて折り返して表示する
+            const parts = [e.title];
+            if (e.detail) parts.push(e.detail);
+            if (e.quote) parts.push(`「${e.quote}」`);
+            const lines = parts.flatMap((p) => wrapToWidth(p, BW - 16));
+            const bh = 10 + lines.length * LINE_H + (e.source || e.url ? LINE_H : 0);
 
-                let by = box.y + LINE_H + 2;
-                let bx = Math.min(RIGHT - BW, Math.max(LEFT, box.x));
-                let guard = 0;
-                while (
-                    placed.some((p) => bx < p.x + p.w + 6 && bx + BW + 6 > p.x && by < p.y + p.h + 6 && by + bh + 6 > p.y) &&
-                    guard++ < 40
-                ) {
-                    by += bh + 8;
+            // 吹き出しは1つしか出さないので、重なりを避ける処理は不要。
+            // 出来事のすぐ下、画面の範囲内に収まるようにだけ調整する。
+            const by = Math.max(0, Math.min(H - 30 - bh, box.y + LINE_H + 2));
+            const bx = Math.min(RIGHT - BW, Math.max(LEFT, box.x));
+
+            const group = el("g", { class: "expandbubble" });
+            group.append(el("rect", { x: bx, y: by, width: BW, height: bh, rx: 5, fill: "white" }));
+            group.append(el("rect", { x: bx, y: by, width: BW, height: bh, rx: 5, fill: color, "fill-opacity": 0.1, stroke: color, "stroke-width": 1.3 }));
+            lines.forEach((line, j) => group.append(el("text", { x: bx + 8, y: by + 15 + j * LINE_H, class: "eventtext" }, line)));
+            if (e.source || e.url) {
+                const y = by + 15 + lines.length * LINE_H;
+                const srcText = `出典：${e.source || "未入力"}`;
+                group.append(el("text", { x: bx + 8, y, class: "eventtext" }, srcText));
+                if (e.url) {
+                    const link = el("text", { x: bx + 8 + measureWidth(srcText) + 8, y, class: "expandlink" }, "URLを開く ↗");
+                    link.addEventListener("click", (ev) => { ev.stopPropagation(); window.open(e.url, "_blank", "noreferrer"); });
+                    group.append(link);
                 }
-                by = Math.max(0, Math.min(H - 30 - bh, by));
-                placed.push({ x: bx, y: by, w: BW, h: bh });
+            }
+            const close = el("text", { x: bx + BW - 10, y: by + 14, "text-anchor": "middle", class: "expandclose" }, "×");
+            group.append(close);
+            group.addEventListener("click", () => { expandedIndex = null; renderExpanded(layout); });
 
-                const group = el("g", { class: "expandbubble" });
-                group.append(el("rect", { x: bx, y: by, width: BW, height: bh, rx: 5, fill: "white" }));
-                group.append(el("rect", { x: bx, y: by, width: BW, height: bh, rx: 5, fill: color, "fill-opacity": 0.1, stroke: color, "stroke-width": 1.3 }));
-                lines.forEach((line, j) => group.append(el("text", { x: bx + 8, y: by + 15 + j * LINE_H, class: "eventtext" }, line)));
-                if (e.source || e.url) {
-                    const y = by + 15 + lines.length * LINE_H;
-                    const srcText = `出典：${e.source || "未入力"}`;
-                    group.append(el("text", { x: bx + 8, y, class: "eventtext" }, srcText));
-                    if (e.url) {
-                        const link = el("text", { x: bx + 8 + measureWidth(srcText) + 8, y, class: "expandlink" }, "URLを開く ↗");
-                        link.addEventListener("click", (ev) => { ev.stopPropagation(); window.open(e.url, "_blank", "noreferrer"); });
-                        group.append(link);
-                    }
-                }
-                const close = el("text", { x: bx + BW - 10, y: by + 14, "text-anchor": "middle", class: "expandclose" }, "×");
-                group.append(close);
-                group.addEventListener("click", () => { expanded.delete(i); renderExpanded(layout); });
-
-                expandLayer.append(group);
-            });
+            expandLayer.append(group);
         }
 
         function updateDetails() {

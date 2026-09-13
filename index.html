@@ -1091,7 +1091,8 @@
 
         function findField(row, ...names) {
             for (const key of Object.keys(row)) {
-                const plain = key.replace(/（必須）/g, "").trim();
+                // 全角・半角問わず カッコとその中身（例: （必須）, (15文字以内) など）をすべて除去して正規化
+                const plain = key.replace(/[（\(].*?[）\)]/g, "").trim();
                 if (names.includes(plain)) return row[key];
             }
             return "";
@@ -1102,20 +1103,24 @@
             reader.onload = () => {
                 const rows = parseCsv(reader.result);
                 if (type === "event") {
-                    DATA.events = rows.map((r) => {
-                        const major = findField(r, "大分類");
-                        const minor = findField(r, "小分類");
+                    DATA.events = rows.map((r, index) => {
                         const year = +findField(r, "年");
+                        const major = findField(r, "大分類") || "その他";
+                        const minor = findField(r, "小分類");
+                        const rawTitle = findField(r, "出来事タイトル", "出来事", "タイトル", "名称");
+                        const title = rawTitle && rawTitle.trim() !== "" ? rawTitle.trim() : `(タイトル未設定 #${index + 1})`;
+
                         return {
-                            year,
-                            date: `${year}-01-01`,
-                            major, minor,
+                            year: year || 1990,
+                            date: `${year || 1990}-01-01`,
+                            major: major,
+                            minor: minor,
                             lane: minor ? `${major}｜${minor}` : major,
-                            title: findField(r, "出来事タイトル", "出来事"),
-                            detail: findField(r, "詳細説明", "説明"),
-                            quote: findField(r, "引用文"),
-                            source: findField(r, "出典"),
-                            url: findField(r, "URL")
+                            title: title,
+                            detail: findField(r, "詳細説明", "詳細", "説明") || "",
+                            quote: findField(r, "引用文", "引用") || "",
+                            source: findField(r, "出典") || "",
+                            url: findField(r, "URL", "リンク") || ""
                         };
                     });
                     DATA.lanes = [...new Set(DATA.events.map((e) => e.lane))];
@@ -1124,7 +1129,7 @@
                         const year = findField(r, "年");
                         return {
                             date: `${year}-01-01`,
-                            series: findField(r, "系列名（全行同じ名前）", "系列名"),
+                            series: findField(r, "系列名"),
                             value: +findField(r, "値") || 0
                         };
                     });
@@ -1276,22 +1281,28 @@
             const parsedValues = parseCSVToObjects(csvData.rawValues);
 
             // 3. データが存在する場合のみ、内部構造に合わせてマッピング変換して更新
+            // initApp() 内の DATA.events マッピング部分を以下に差し替え
             if (parsedEvents.length > 0) {
-                DATA.events = parsedEvents.map(r => {
+                DATA.events = parsedEvents.map((r, index) => {
                     const year = +findField(r, "年");
-                    const major = findField(r, "大分類");
+                    const major = findField(r, "大分類") || "その他";
                     const minor = findField(r, "小分類");
+                    const rawTitle = findField(r, "出来事タイトル", "出来事", "タイトル", "名称");
+
+                    // タイトルが空の場合はエラーにせず、視覚的に気づけるフォールバックを設定
+                    const title = rawTitle && rawTitle.trim() !== "" ? rawTitle.trim() : `(タイトル未設定 #${index + 1})`;
+
                     return {
                         year: year || 1990,
                         date: `${year || 1990}-01-01`,
-                        major: major || "その他",
+                        major: major,
                         minor: minor,
-                        lane: minor ? `${major}｜${minor}` : (major || "その他"),
-                        title: findField(r, "出来事タイトル", "出来事"),
-                        detail: findField(r, "詳細説明", "説明"),
-                        quote: findField(r, "引用文"),
-                        source: findField(r, "出典"),
-                        url: findField(r, "URL")
+                        lane: minor ? `${major}｜${minor}` : major,
+                        title: title,
+                        detail: findField(r, "詳細説明", "詳細", "説明") || "",
+                        quote: findField(r, "引用文", "引用") || "",
+                        source: findField(r, "出典") || "",
+                        url: findField(r, "URL", "リンク") || ""
                     };
                 });
                 DATA.lanes = [...new Set(DATA.events.map((e) => e.lane))];

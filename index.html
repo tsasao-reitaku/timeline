@@ -235,6 +235,8 @@
             stroke-dasharray: 4 3;
         }
 
+        .turnLayer .turn { opacity: 0.45; }
+
         .turntext {
             fill: #7a1f1f;
             font-size: 12px;
@@ -1109,8 +1111,10 @@
                 if (type === "event") {
                     DATA.events = mapRowsToEvents(rows);
                     DATA.lanes = [...new Set(DATA.events.map((e) => e.lane))];
+                    DATA.turning_points = [];
                 } else {
                     DATA.quant = mapRowsToQuant(rows);
+                    DATA.turning_points = [];
                 }
                 redraw();
             };

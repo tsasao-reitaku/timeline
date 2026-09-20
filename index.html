@@ -23,7 +23,7 @@
             flex-direction: column;
             margin: 0;
             padding: 16px;
-            max-width: 1220px;
+            max-width: 1470px;
             margin-inline: auto;
             font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
             color: var(--ink);
@@ -41,8 +41,7 @@
         body>h1,
         body>p.intro,
         body>.toolbar,
-        body>.tp-heading,
-        body>#tpTags,
+        body>.tp-row,
         body>#tpMode,
         body>.hint,
         body>.tp-dialog,
@@ -80,24 +79,58 @@
             cursor: pointer;
         }
 
-        .toolbar .export {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            color: var(--sub);
+        .export-menu {
+            position: relative;
         }
 
-        .toolbar .export button {
+        .export-popup {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 20px 16px 16px;
+            min-width: 120px;
+        }
+
+        .export-popup:not([open]) {
+            display: none;
+        }
+
+        .export-popup-close {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            background: none !important;
+            border: none !important;
+            color: var(--sub) !important;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 2px 6px !important;
+        }
+
+        .export-popup button {
             background: white;
             color: var(--accent);
             border: 1px solid var(--accent);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .tp-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
         }
 
         .tp-heading {
             font-size: 13px;
             font-weight: 600;
-            margin-top: 12px;
+            white-space: nowrap;
         }
 
         .tp-tags {
@@ -156,6 +189,8 @@
             justify-content: space-between;
             gap: 12px;
             margin: 10px 0;
+            font-size: 12px;
+            white-space: nowrap;
         }
 
         dialog .csv-info {
@@ -174,6 +209,7 @@
             gap: 8px;
             margin: 8px 0;
         }
+
         .tp-dialog[hidden] {
             display: none;
         }
@@ -235,7 +271,9 @@
             stroke-dasharray: 4 3;
         }
 
-        .turnLayer .turn { opacity: 0.45; }
+        .turnLayer .turn {
+            opacity: 0.45;
+        }
 
         .turntext {
             fill: #7a1f1f;
@@ -394,12 +432,15 @@
     </p>
 
     <div class="toolbar">
-        <button id="builderToggle" type="button">年表を作成</button>
-        <div class="export">
-            <span>書き出し：</span>
-            <button id="exportSvg" type="button">svg</button>
-            <button id="exportPng" type="button">png</button>
-            <button id="exportPdf" type="button">pdf</button>
+        <button id="builderToggle" type="button">新規年表を作成</button>
+        <div class="export-menu">
+            <button id="exportToggle" type="button">年表を書き出し</button>
+            <dialog id="exportPopup" class="export-popup">
+                <button id="exportPopupClose" type="button" class="export-popup-close">×</button>
+                <button id="exportSvg" type="button">svg</button>
+                <button id="exportPng" type="button">png</button>
+                <button id="exportPdf" type="button">pdf</button>
+            </dialog>
         </div>
     </div>
 
@@ -418,12 +459,14 @@
             <label>定量CSV<input id="quantCsv" type="file" accept=".csv,text/csv" /></label>
             <a id="quantTemplate" download="定量_template.csv" href="#">ひな型をダウンロード</a>
         </div>
-        <button id="csvClose" type="button">閉じる</button>
+        <button id="csvClose" type="button" class="export-popup-close">×</button>
     </dialog>
 
-    <div class="tp-heading">転換点</div>
-    <div id="tpTags" class="tp-tags" aria-live="polite"></div>
-    <button id="tpMode" type="button">転換点を追加</button>
+    <div class="tp-row">
+        <span class="tp-heading">転換点：</span>
+        <div id="tpTags" class="tp-tags" aria-live="polite"></div>
+        <button id="tpMode" type="button">転換点を追加</button>
+    </div>
     <div class="hint">
         行名クリック：下のパネルにその行の出来事を一覧表示 ｜ 出来事の枠クリック：出典URLがあれば開く
         ｜ マウスオーバー：年・値を表示
@@ -488,13 +531,13 @@
         let hoverYear = null;
         let expandedIndex = null; // クリックで全文表示中の出来事の index（一度に1つだけ）
 
-        const W = 1180;
+        const W = 1430;
         const LEFT = 235;
         const RIGHT = 1145;
 
         const Q_TOP = 46;
         const Q_BOTTOM = 230;
-        const Q_HEIGHT = 280;
+        const Q_HEIGHT = 256;
 
         const LANE_TOP = 16;
         const LANE_GAP = 14;
@@ -582,7 +625,7 @@
                 cursorY += laneHeight + LANE_GAP;
             });
 
-            currentLayout = { boxes, laneInfos, totalHeight: cursorY };
+            currentLayout = { boxes, laneInfos, totalHeight: cursorY + 20 };
             return currentLayout;
         }
         function timelineHeight() {
@@ -603,12 +646,25 @@
             return new Intl.NumberFormat("ja-JP").format(Math.round(v));
         }
 
+        // SVGの実際の横幅にあわせて、縦横比通りの高さ(px)を計算してそのまま指定する
+        function fitSvgHeight(svg, viewW, viewH) {
+            const width = svg.parentElement.clientWidth || svg.getBoundingClientRect().width;
+            if (width > 0) {
+                svg.style.height = (width * viewH / viewW) + "px";
+            }
+        }
+
+        // ウィンドウサイズが変わったときも高さを再計算する
+        window.addEventListener("resize", () => {
+            fitSvgHeight(document.getElementById("quantSvg"), W, Q_HEIGHT);
+            fitSvgHeight(document.getElementById("timelineSvg"), W, timelineHeight());
+        });
+
         function drawQuant() {
             const svg = document.getElementById("quantSvg");
             svg.innerHTML = "";
             svg.setAttribute("viewBox", `0 0 ${W} ${Q_HEIGHT}`);
-            svg.setAttribute("width", W);
-            svg.setAttribute("height", Q_HEIGHT);
+            fitSvgHeight(svg, W, Q_HEIGHT);
 
             const gridLayer = el("g", { class: "gridLayer" });
             const quantLayer = el("g", { class: "quantLayer" });
@@ -616,8 +672,6 @@
             const titleLayer = el("g", { class: "titleLayer" });
             const guideLayer = el("g", { class: "guideLayer" });
             svg.append(gridLayer, quantLayer, turnLayer, titleLayer, guideLayer);
-
-            svg.append(el("title", {}, "定量グラフ"));
 
             const titleText = el("text", { x: LEFT + 10, y: 18, class: "chart-title" }, chartTitle);
             titleText.addEventListener("click", () => startTitleEdit(titleText));
@@ -670,7 +724,7 @@
             DATA.turning_points.forEach((tp, i) => {
                 const yr = +tp.date.slice(0, 4);
                 const xx = x(yr);
-                turnLayer.append(el("line", { x1: xx, x2: xx, y1: Q_TOP, y2: Q_BOTTOM, class: "turn" }));
+                turnLayer.append(el("line", { x1: xx, x2: xx, y1: Q_TOP, y2: Q_HEIGHT, class: "turn" }));
                 turnLayer.append(
                     el("text", { x: xx + 4, y: Q_TOP + 14 + i * 16, class: "turntext" }, (tp.label || String(yr)).replace("\n", " "))
                 );
@@ -694,8 +748,7 @@
             const layout = computeLayout();
             const H = layout.totalHeight;
             svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-            svg.setAttribute("width", W);
-            svg.setAttribute("height", H);
+            fitSvgHeight(svg, W, H);
 
             const gridLayer = el("g", { class: "gridLayer" });
             const laneLayer = el("g", { class: "laneLayer" });
@@ -703,8 +756,6 @@
             const eventLayer = el("g", { class: "eventLayer" });
             const guideLayer = el("g", { class: "guideLayer" });
             svg.append(gridLayer, laneLayer, turnLayer, eventLayer, guideLayer);
-
-            svg.append(el("title", {}, "出来事年表"));
 
             [1960, 1970, 1980, 1990, 2000, 2010, 2020]
                 .filter((y) => y >= minYear() && y <= maxYear())
@@ -880,7 +931,7 @@
             const yr = Math.round(minYear() + ((localX - LEFT) / (RIGHT - LEFT)) * (maxYear() - minYear()));
             hoverYear = Math.max(minYear(), Math.min(maxYear(), yr));
 
-            drawGuide("quantSvg", part === "quant" ? localY : null, Q_TOP, Q_BOTTOM);
+            drawGuide("quantSvg", part === "quant" ? localY : null, Q_TOP, Q_HEIGHT);
             drawGuide("timelineSvg", part === "timeline" ? localY : null, 0, timelineHeight() - 30);
         }
 
@@ -1200,6 +1251,22 @@
         });
 
         document.getElementById("exportPdf").addEventListener("click", () => window.print());
+
+        // 「年表を書き出し」ボタンでポップアップの開閉、外側クリックで閉じる
+        document.getElementById("exportToggle").addEventListener("click", () => {
+            document.getElementById("exportPopup").showModal();
+        });
+        document.getElementById("exportPopupClose").addEventListener("click", () => {
+            document.getElementById("exportPopup").close();
+        });
+        document.getElementById("exportPopup").addEventListener("click", (ev) => {
+            if (ev.target.id === "exportPopup") document.getElementById("exportPopup").close();
+        });
+        ["exportSvg", "exportPng", "exportPdf"].forEach((id) => {
+            document.getElementById(id).addEventListener("click", () => {
+                document.getElementById("exportPopup").close();
+            });
+        });
 
         function redraw() {
             updateCsvLinks();

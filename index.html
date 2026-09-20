@@ -41,8 +41,6 @@
         body>h1,
         body>p.intro,
         body>.toolbar,
-        body>.tp-row,
-        body>#tpMode,
         body>.hint,
         body>.tp-dialog,
         body>#csvDialog {
@@ -419,6 +417,12 @@
             fill: none;
             pointer-events: all;
         }
+
+        h1,
+        p.intro,
+        .hint {
+            display: none;
+        }
     </style>
 </head>
 
@@ -432,16 +436,17 @@
     </p>
 
     <div class="toolbar">
+        <button id="exportToggle" type="button">年表を書き出し</button>
+        <dialog id="exportPopup" class="export-popup">
+            <button id="exportPopupClose" type="button" class="export-popup-close">×</button>
+            <button id="exportSvg" type="button">svg</button>
+            <button id="exportPng" type="button">png</button>
+            <button id="exportPdf" type="button">pdf</button>
+        </dialog>
         <button id="builderToggle" type="button">新規年表を作成</button>
-        <div class="export-menu">
-            <button id="exportToggle" type="button">年表を書き出し</button>
-            <dialog id="exportPopup" class="export-popup">
-                <button id="exportPopupClose" type="button" class="export-popup-close">×</button>
-                <button id="exportSvg" type="button">svg</button>
-                <button id="exportPng" type="button">png</button>
-                <button id="exportPdf" type="button">pdf</button>
-            </dialog>
-        </div>
+        <span class="tp-heading">転換点：</span>
+        <div id="tpTags" class="tp-tags" aria-live="polite"></div>
+        <button id="tpMode" type="button">転換点を追加</button>
     </div>
 
     <dialog id="csvDialog">
@@ -462,11 +467,6 @@
         <button id="csvClose" type="button" class="export-popup-close">×</button>
     </dialog>
 
-    <div class="tp-row">
-        <span class="tp-heading">転換点：</span>
-        <div id="tpTags" class="tp-tags" aria-live="polite"></div>
-        <button id="tpMode" type="button">転換点を追加</button>
-    </div>
     <div class="hint">
         行名クリック：下のパネルにその行の出来事を一覧表示 ｜ 出来事の枠クリック：出典URLがあれば開く
         ｜ マウスオーバー：年・値を表示

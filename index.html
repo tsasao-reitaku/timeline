@@ -314,7 +314,7 @@
 
         .turntext {
             fill: #7a1f1f;
-            font-size: 12px;
+            font-size: 11.5px;
         }
 
         .guideline {
@@ -778,7 +778,7 @@
                 const xx = x(yr);
                 turnLayer.append(el("line", { x1: xx, x2: xx, y1: Q_TOP, y2: Q_HEIGHT, class: "turn" }));
                 turnLayer.append(
-                    el("text", { x: xx + 4, y: Q_TOP + 14 + i * 16, class: "turntext" }, (tp.label || String(yr)).replace("\n", " "))
+                    el("text", { x: xx + 4, y: Q_TOP + 14 + i * 16, class: "turntext" }, `${yr}｜${(tp.label || "").replace("\n", " ")}`)
                 );
             });
 

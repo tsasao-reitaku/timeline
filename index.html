@@ -378,6 +378,23 @@
             padding: 2px 6px;
         }
 
+        .title-edit-fo {
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            font-size: 13px;
+            font-weight: 700;
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+
+        .tp-inline-input {
+            font-size: 12px;
+            font-weight: 400;
+            width: 220px;
+        }
+
         @media print {
 
             #quantViewport,
@@ -787,9 +804,11 @@
                 if (!tpMode) return;
                 const rect = svg.getBoundingClientRect();
                 const scaleX = W / rect.width;
+                const scaleY = svg.viewBox.baseVal.height / rect.height;
                 const localX = (ev.clientX - rect.left) * scaleX;
+                const localY = (ev.clientY - rect.top) * scaleY;
                 const yr = Math.round(minYear() + Math.max(0, Math.min(1, (localX - LEFT) / (RIGHT - LEFT))) * (maxYear() - minYear()));
-                openTurningPointDialog(yr);
+                openTurningPointDialog(yr, localX, localY);
             });
             svg.append(clickArea);
         }
@@ -999,27 +1018,33 @@
 
         function startTitleEdit(titleTextEl) {
             const svg = document.getElementById("quantSvg");
-            const rect = svg.getBoundingClientRect();
             const box = titleTextEl.getBBox();
-            const scale = rect.width / W;
+
+            const fo = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+            fo.setAttribute("x", box.x - 4);
+            fo.setAttribute("y", box.y - 6);
+            fo.setAttribute("width", Math.max(200, box.width + 40));
+            fo.setAttribute("height", 26);
 
             const input = document.createElement("input");
-            input.className = "title-edit";
+            input.className = "title-edit-fo";
             input.value = chartTitle;
-            input.style.left = `${rect.left + box.x * scale}px`;
-            input.style.top = `${rect.top + (box.y - 4) * scale}px`;
-            input.style.width = `${Math.max(200, box.width * scale + 40)}px`;
-            document.body.append(input);
+            fo.append(input);
+            svg.append(fo);
             input.focus();
             input.select();
 
+            let done = false;
             const commit = () => {
+                if (done) return;
+                done = true;
                 chartTitle = input.value.trim() || chartTitle;
-                input.remove();
+                fo.remove();
                 drawQuant();
             };
             input.addEventListener("blur", commit);
             input.addEventListener("keydown", (e) => {
+                if (e.isComposing) return;
                 if (e.key === "Enter") input.blur();
                 if (e.key === "Escape") { input.value = chartTitle; input.blur(); }
             });
@@ -1045,23 +1070,47 @@
             });
         }
 
-        function openTurningPointDialog(year) {
-            const dialog = document.getElementById("tpDialog");
-            const input = document.getElementById("tpLabel");
-            dialog.hidden = false;
-            input.value = "";
+        function openTurningPointDialog(year, svgX, svgY) {
+            const svg = document.getElementById("quantSvg");
+
+            const fo = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+            fo.setAttribute("x", svgX);
+            fo.setAttribute("y", svgY - 12);
+            fo.setAttribute("width", 220);
+            fo.setAttribute("height", 26);
+
+            const input = document.createElement("input");
+            input.className = "title-edit-fo tp-inline-input";
+            input.placeholder = `${year}年のラベルを入力してEnter`;
+            fo.append(input);
+            svg.append(fo);
             input.focus();
-            document.getElementById("tpSave").onclick = () => {
+
+            let done = false;
+            const commit = () => {
+                if (done) return;
+                done = true;
                 const label = input.value.trim();
+                fo.remove();
                 if (label) {
                     DATA.turning_points.push({ date: `${year}-01-01`, label });
                     tpMode = false;
                     document.getElementById("tpMode").textContent = "転換点を追加";
-                    dialog.hidden = true;
                     redraw();
                 }
             };
-            document.getElementById("tpCancel").onclick = () => { dialog.hidden = true; };
+            const cancel = () => {
+                if (done) return;
+                done = true;
+                fo.remove();
+            };
+
+            input.addEventListener("keydown", (ev) => {
+                if (ev.isComposing) return;
+                if (ev.key === "Enter") commit();
+                if (ev.key === "Escape") cancel();
+            });
+            input.addEventListener("blur", cancel);
         }
 
         /**

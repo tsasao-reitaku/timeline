@@ -610,7 +610,7 @@
         const LANE_GAP = 14;
         const ROW_GAP = 4;
         const BOX_GAP = 10;
-        const BOX_W = 210;
+        const BOX_W = 320;
         const FONT_SIZE = 11.5;
         const LINE_H = 18;
 
@@ -943,16 +943,20 @@
             const e = box.e;
             const color = colorForMajor(e.major);
 
-            // タイトル → 詳細説明 → 引用文の順に、まとめて折り返して表示する
-            const parts = [e.title];
+            // 年 → タイトル → 詳細説明 → 引用文の順に、まとめて折り返して表示する
+            const parts = [`${e.year}年`, e.title];
             if (e.detail) parts.push(e.detail);
             if (e.quote) parts.push(`「${e.quote}」`);
             const lines = parts.flatMap((p) => wrapToWidth(p, BW - 16));
             const bh = 10 + lines.length * LINE_H + (e.source || e.url ? LINE_H : 0);
 
             // 吹き出しは1つしか出さないので、重なりを避ける処理は不要。
-            // 出来事のすぐ下、画面の範囲内に収まるようにだけ調整する。
-            const by = Math.max(0, Math.min(H - 30 - bh, box.y + LINE_H + 2));
+            // 基本は出来事のすぐ下に表示するが、下に収まりきらない場合は上側に表示する。
+            let by = box.y + LINE_H + 2;
+            if (by + bh > H - 30) {
+                by = box.y - bh - 2;
+            }
+            by = Math.max(0, Math.min(H - 30 - bh, by));
             const bx = Math.min(RIGHT - BW, Math.max(LEFT, box.x));
 
             const group = el("g", { class: "expandbubble" });

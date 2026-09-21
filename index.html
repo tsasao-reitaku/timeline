@@ -496,17 +496,25 @@
     <dialog id="csvDialog">
         <h2>年表を作成</h2>
         <div class="csv-info">
-            <strong>【出来事CSVのフォーマット仕様】</strong><br>
-            ヘッダー: <code>年（必須）,大分類（必須）,小分類,出来事タイトル（必須）,詳細説明,引用文,出典,URL</code><br>
-            ※文章内にカンマや改行が含まれるセルは、必ずセル全体をダブルクォーテーション(")で囲んでください。
-        </div>
-        <div class="dialog-row">
-            <label>出来事CSV<input id="eventCsv" type="file" accept=".csv,text/csv" /></label>
-            <a id="eventTemplate" download="出来事_template.csv" href="#">ひな型をダウンロード</a>
+            【定量CSVのフォーマット仕様】
+            ヘッダー: 年（必須）,値,系列名（全行同じ名前）（必須）
+            <br /><br />
+            【出来事CSVのフォーマット仕様】
+            ヘッダー: 年（必須）,大分類（必須）,小分類,出来事タイトル（必須）,詳細説明,引用文,出典,URL
+            <br /><br />
+            【作成時の注意】
+            <br />・文章内にカンマや改行が含まれるセルは、必ずセル全体をダブルクォーテーション(")で囲んでください。
+            <br />・系列名に単位を付けたい場合は「ポケベル加入数（人）」のようにカッコで囲んでください（全角・半角どちらでも構いません）。マウスオーバー時の表示にこの単位だけが使われます。
+            <br />・年・値の列には数字だけを入力してください（カンマ区切りの桁区切り「1,000」のような書き方は不可）。
+            <br />・Excelで保存する場合は「CSV UTF-8（コンマ区切り）」形式を選んでください。通常の「CSV（コンマ区切り）」で保存すると、文字化けの原因になることがあります。
         </div>
         <div class="dialog-row">
             <label>定量CSV<input id="quantCsv" type="file" accept=".csv,text/csv" /></label>
             <a id="quantTemplate" download="定量_template.csv" href="#">ひな型をダウンロード</a>
+        </div>
+        <div class="dialog-row">
+            <label>出来事CSV<input id="eventCsv" type="file" accept=".csv,text/csv" /></label>
+            <a id="eventTemplate" download="出来事_template.csv" href="#">ひな型をダウンロード</a>
         </div>
         <button id="csvClose" type="button" class="export-popup-close">×</button>
     </dialog>
@@ -697,9 +705,11 @@
             return node;
         }
 
-        // 定量CSVの「系列名」をそのままラベルとして使う（例：「ポケベル加入数（人）」）
-        function seriesLabel() {
-            return (DATA.quant[0] && DATA.quant[0].series) || "値";
+        // 系列名の中の（）部分を「単位」として取り出す（例："ポケベル加入数（人）" → 単位は「人」）
+        function seriesInfo() {
+            const raw = (DATA.quant[0] && DATA.quant[0].series) || "値";
+            const m = raw.match(/^(.*?)[（(](.*?)[）)]\s*$/);
+            return m ? { label: raw, unit: m[2] } : { label: raw, unit: "" };
         }
 
         function metricValues() {
@@ -793,7 +803,7 @@
                 quantLayer.append(el("text", { x: LEFT + 8, y: Q_TOP + 22, class: "turntext" }, "定量データなし（出来事のみ表示）"));
             }
 
-            svg.append(el("text", { x: LEFT, y: Q_TOP - 6, class: "tick" }, seriesLabel()));
+            svg.append(el("text", { x: LEFT, y: Q_TOP - 6, class: "tick" }, seriesInfo().label));
 
             DATA.turning_points.forEach((tp, i) => {
                 const yr = +tp.date.slice(0, 4);
@@ -1506,7 +1516,7 @@
             const nearest = inRange
                 ? values.reduce((a, b) => (Math.abs(+a.date.slice(0, 4) - hoverYear) < Math.abs(+b.date.slice(0, 4) - hoverYear) ? a : b))
                 : null;
-            const text = nearest ? `${hoverYear}年｜${seriesLabel()} ${formatValue(nearest.value)}` : `${hoverYear}年`;
+            const text = nearest ? `${hoverYear}年｜${formatValue(nearest.value)}${seriesInfo().unit}` : `${hoverYear}年`;
             const labelX = Math.min(RIGHT - 150, xx + 6);
             // マウスの高さそのものだと出来事のテキストと重なりやすいので、少し上にずらす
             const clampedY = Math.max(top + 12, Math.min(bottom - 4, labelY - 18));

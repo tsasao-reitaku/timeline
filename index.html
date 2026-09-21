@@ -545,9 +545,9 @@
     </div>
 
     <div class="details" id="details" aria-live="polite">
-        <h2>選択行の出来事</h2>
+        <h2>選択カテゴリの出来事</h2>
         <div class="event-list">
-            <span class="hint">行名をクリックすると、その行の出来事がすべて表示されます。</span>
+            <span class="hint">カテゴリ名をクリックすると、そのカテゴリの出来事が一覧表示されます。</span>
         </div>
     </div>
 
@@ -697,6 +697,11 @@
             return node;
         }
 
+        // 定量CSVの「系列名」をそのままラベルとして使う（例：「ポケベル加入数（人）」）
+        function seriesLabel() {
+            return (DATA.quant[0] && DATA.quant[0].series) || "値";
+        }
+
         function metricValues() {
             return DATA.quant.filter((d) => Number.isFinite(d.value));
         }
@@ -788,7 +793,7 @@
                 quantLayer.append(el("text", { x: LEFT + 8, y: Q_TOP + 22, class: "turntext" }, "定量データなし（出来事のみ表示）"));
             }
 
-            svg.append(el("text", { x: LEFT, y: Q_TOP - 6, class: "tick" }, "ポケベル加入数（人）"));
+            svg.append(el("text", { x: LEFT, y: Q_TOP - 6, class: "tick" }, seriesLabel()));
 
             DATA.turning_points.forEach((tp, i) => {
                 const yr = +tp.date.slice(0, 4);
@@ -965,8 +970,8 @@
             const list = details.querySelector(".event-list");
             list.innerHTML = "";
             if (!activeLane) {
-                details.querySelector("h2").textContent = "選択行の出来事";
-                list.innerHTML = '<span class="hint">行名をクリックすると、その行の出来事が一覧表示されます。</span>';
+                details.querySelector("h2").textContent = "選択カテゴリの出来事";
+                list.innerHTML = '<span class="hint">カテゴリ名をクリックすると、その出来事が一覧表示されます。</span>';
                 return;
             }
             details.querySelector("h2").textContent = activeLane + "｜出来事一覧";
@@ -1346,7 +1351,10 @@
                 const canvas = document.createElement("canvas");
                 canvas.width = width * scale;
                 canvas.height = height * scale;
-                canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+                const ctx = canvas.getContext("2d");
+                ctx.fillStyle = "white";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                 canvas.toBlob((blob) => downloadBlob("timeline.png", blob), "image/png");
             };
             img.src = src;
@@ -1493,10 +1501,12 @@
             if (labelY == null) return;
 
             const values = metricValues();
-            const nearest = values.length
+            const quantYears = values.map((d) => +d.date.slice(0, 4));
+            const inRange = quantYears.length && hoverYear >= Math.min(...quantYears) && hoverYear <= Math.max(...quantYears);
+            const nearest = inRange
                 ? values.reduce((a, b) => (Math.abs(+a.date.slice(0, 4) - hoverYear) < Math.abs(+b.date.slice(0, 4) - hoverYear) ? a : b))
                 : null;
-            const text = nearest ? `${hoverYear}年｜${formatValue(nearest.value)}` : `${hoverYear}年`;
+            const text = nearest ? `${hoverYear}年｜${seriesLabel()} ${formatValue(nearest.value)}` : `${hoverYear}年`;
             const labelX = Math.min(RIGHT - 150, xx + 6);
             // マウスの高さそのものだと出来事のテキストと重なりやすいので、少し上にずらす
             const clampedY = Math.max(top + 12, Math.min(bottom - 4, labelY - 18));

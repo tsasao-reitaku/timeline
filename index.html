@@ -516,6 +516,7 @@
             <label>出来事CSV<input id="eventCsv" type="file" accept=".csv,text/csv" /></label>
             <a id="eventTemplate" download="出来事_template.csv" href="#">ひな型をダウンロード</a>
         </div>
+        <button id="csvApply" type="button">読み込む</button>
         <button id="csvClose" type="button" class="export-popup-close">×</button>
     </dialog>
 
@@ -1439,8 +1440,46 @@
             document.getElementById("csvDialog").showModal();
         });
         document.getElementById("csvClose").addEventListener("click", () => document.getElementById("csvDialog").close());
-        document.getElementById("eventCsv").addEventListener("change", (e) => e.target.files[0] && loadCsv(e.target.files[0], "event"));
-        document.getElementById("quantCsv").addEventListener("change", (e) => e.target.files[0] && loadCsv(e.target.files[0], "quant"));
+
+        let eventsLoadedOnce = false;
+        let quantLoadedOnce = false;
+
+        document.getElementById("csvApply").addEventListener("click", () => {
+            const eventFile = document.getElementById("eventCsv").files[0];
+            const quantFile = document.getElementById("quantCsv").files[0];
+            if (!eventFile && !quantFile) return; // どちらも選ばれていなければ何もしない
+
+            const readRows = (file) => new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(parseCSVToObjects(parseCustomCSV(reader.result)));
+                reader.readAsText(file, "UTF-8");
+            });
+
+            Promise.all([
+                eventFile ? readRows(eventFile) : Promise.resolve(null),
+                quantFile ? readRows(quantFile) : Promise.resolve(null)
+            ]).then(([eventRows, quantRows]) => {
+                if (eventRows) {
+                    DATA.events = mapRowsToEvents(eventRows);
+                    DATA.lanes = [...new Set(DATA.events.map((e) => e.lane))];
+                    eventsLoadedOnce = true;
+                } else if (!eventsLoadedOnce) {
+                    // まだ一度も出来事CSVを読み込んでいない場合だけ空にする
+                    DATA.events = [];
+                    DATA.lanes = [];
+                }
+                if (quantRows) {
+                    DATA.quant = mapRowsToQuant(quantRows);
+                    quantLoadedOnce = true;
+                } else if (!quantLoadedOnce) {
+                    // まだ一度も定量CSVを読み込んでいない場合だけ空にする
+                    DATA.quant = [];
+                }
+                DATA.turning_points = [];
+                redraw();
+                document.getElementById("csvDialog").close();
+            });
+        });
 
         document.getElementById("tpMode").addEventListener("click", () => {
             tpMode = !tpMode;

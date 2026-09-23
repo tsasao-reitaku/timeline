@@ -345,6 +345,12 @@
             fill: #17202a;
         }
 
+        .eventtext-bold {
+            font-size: 11.5px;
+            font-weight: 700;
+            fill: #17202a;
+        }
+
         .expandbubble rect {
             cursor: pointer;
         }
@@ -939,16 +945,20 @@
             if (!box) return;
 
             const H = layout.totalHeight;
-            const BW = 260;
             const e = box.e;
             const color = colorForMajor(e.major);
 
-            // 年 → タイトル → 詳細説明 → 引用文の順に、まとめて折り返して表示する
-            const parts = [`${e.year}年`, e.title];
-            if (e.detail) parts.push(e.detail);
-            if (e.quote) parts.push(`「${e.quote}」`);
-            const lines = parts.flatMap((p) => wrapToWidth(p, BW - 16));
-            const bh = 10 + lines.length * LINE_H + (e.source || e.url ? LINE_H : 0);
+            // 1行目「年｜タイトル」は太字・改行なしで、これに合わせて吹き出しの幅を決める。
+            // 詳細説明・引用文は、その幅に収まるよう折り返す。
+            const headerText = `${e.year}｜${e.title}`;
+            const headerW = measureWidth(headerText) + 16;
+            const BW = Math.max(260, headerW);
+
+            const bodyParts = [];
+            if (e.detail) bodyParts.push(e.detail);
+            if (e.quote) bodyParts.push(`「${e.quote}」`);
+            const bodyLines = bodyParts.flatMap((p) => wrapToWidth(p, BW - 16));
+            const bh = 10 + LINE_H + bodyLines.length * LINE_H + (e.source || e.url ? LINE_H : 0);
 
             // 吹き出しは1つしか出さないので、重なりを避ける処理は不要。
             // 基本は出来事のすぐ下に表示するが、下に収まりきらない場合は上側に表示する。
@@ -957,14 +967,17 @@
                 by = box.y - bh - 2;
             }
             by = Math.max(0, Math.min(H - 30 - bh, by));
-            const bx = Math.min(RIGHT - BW, Math.max(LEFT, box.x));
+            // 右端に余白（W > RIGHT の部分）があるので、そこも使って良いようにする
+            const bx = Math.min(W - BW - 4, Math.max(LEFT, box.x));
 
             const group = el("g", { class: "expandbubble" });
             group.append(el("rect", { x: bx, y: by, width: BW, height: bh, rx: 5, fill: "white" }));
             group.append(el("rect", { x: bx, y: by, width: BW, height: bh, rx: 5, fill: color, "fill-opacity": 0.1, stroke: color, "stroke-width": 1.3 }));
-            lines.forEach((line, j) => group.append(el("text", { x: bx + 8, y: by + 15 + j * LINE_H, class: "eventtext" }, line)));
+            group.append(el("text", { x: bx + 8, y: by + 15, class: "eventtext-bold" }, headerText));
+            bodyLines.forEach((line, j) => group.append(el("text", { x: bx + 8, y: by + 15 + (j + 1) * LINE_H, class: "eventtext" }, line)));
+
             if (e.source || e.url) {
-                const y = by + 15 + lines.length * LINE_H;
+                const y = by + 15 + (bodyLines.length + 1) * LINE_H;
                 const srcText = `出典：${e.source || "未入力"}`;
                 group.append(el("text", { x: bx + 8, y, class: "eventtext" }, srcText));
                 if (e.url) {
@@ -1232,6 +1245,26 @@
             }
         }
 
+        // CSVの中身をチェックし、問題があればエラー内容の文字列を返す（問題なければnull）
+        function validateRows(rows, type) {
+            if (!rows.length) return "データが1件も見つかりませんでした。ヘッダー行や中身を確認してください。";
+            for (let i = 0; i < rows.length; i++) {
+                const r = rows[i];
+                const year = findField(r, "年");
+                if (!year || isNaN(+year)) return `${i + 2}行目：「年」が数値になっていません（入力値：${year || "空欄"}）。`;
+                if (type === "event") {
+                    const major = findField(r, "大分類");
+                    const title = findField(r, "出来事タイトル", "出来事", "タイトル", "名称");
+                    if (!major || !major.trim()) return `${i + 2}行目：「大分類」が入力されていません。`;
+                    if (!title || !title.trim()) return `${i + 2}行目：「出来事タイトル」が入力されていません。`;
+                } else {
+                    const series = findField(r, "系列名（全行同じ名前）", "系列名");
+                    if (!series || !series.trim()) return `${i + 2}行目：「系列名」が入力されていません。`;
+                }
+            }
+            return null;
+        }
+
         function findField(row, ...names) {
             for (const key of Object.keys(row)) {
                 // 全角・半角問わず カッコとその中身（例: （必須）, (15文字以内) など）をすべて除去して正規化
@@ -1463,12 +1496,23 @@
                 eventFile ? readRows(eventFile) : Promise.resolve(null),
                 quantFile ? readRows(quantFile) : Promise.resolve(null)
             ]).then(([eventRows, quantRows]) => {
+                const eventError = eventRows ? validateRows(eventRows, "event") : null;
+                const quantError = quantRows ? validateRows(quantRows, "quant") : null;
+
+                if (eventError) {
+                    showCSVErrNotice(`出来事CSVに問題があります：${eventError}`);
+                    return; // 何も反映せず、これまでのデータのまま残す
+                }
+                if (quantError) {
+                    showCSVErrNotice(`定量CSVに問題があります：${quantError}`);
+                    return;
+                }
+
                 if (eventRows) {
                     DATA.events = mapRowsToEvents(eventRows);
                     DATA.lanes = [...new Set(DATA.events.map((e) => e.lane))];
                     eventsLoadedOnce = true;
                 } else if (!eventsLoadedOnce) {
-                    // まだ一度も出来事CSVを読み込んでいない場合だけ空にする
                     DATA.events = [];
                     DATA.lanes = [];
                 }
@@ -1476,13 +1520,13 @@
                     DATA.quant = mapRowsToQuant(quantRows);
                     quantLoadedOnce = true;
                 } else if (!quantLoadedOnce) {
-                    // まだ一度も定量CSVを読み込んでいない場合だけ空にする
                     DATA.quant = [];
                 }
                 DATA.turning_points = [];
                 redraw();
                 document.getElementById("csvDialog").close();
             });
+
         });
 
         document.getElementById("tpMode").addEventListener("click", () => {

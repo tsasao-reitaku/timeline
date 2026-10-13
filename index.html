@@ -266,14 +266,23 @@
         #quantViewport svg,
         #timelineViewport svg {
             width: 100%;
+            max-width: none;
             display: block;
         }
 
         #timelineViewport {
             height: 60vh;
             min-height: 320px;
-            overflow-y: auto;
-            overflow-x: hidden;
+            overflow: auto; /* 縦：枠内スクロール／横：右側の出来事が収まらないときだけスクロール */
+        }
+
+        .hscroll-hint {
+            border-top: 1px solid var(--line);
+            padding: 4px 12px;
+            font-size: 11px;
+            color: var(--sub);
+            text-align: right;
+            background: #fafbfc;
         }
 
         .grid {
@@ -621,7 +630,8 @@
         let hoverT = null; // マウス位置の時刻（年の小数表現。例：2004年3月 = 2004.1667）
         let expandedIndex = null; // クリックで全文表示中の出来事の index（一度に1つだけ）
 
-        const W = 1430;
+        const BASE_W = 1430; // 基本の横幅
+        let W = BASE_W;      // 出来事の文字が右端に収まらないときは、年表を横に広げる（computeLayout が更新する）
         const LEFT = 235;
         const RIGHT = 1145;
 
@@ -633,7 +643,7 @@
         const LANE_GAP = 14;
         const ROW_GAP = 4;
         const BOX_GAP = 10;
-        const BOX_W = 320;
+        const MAX_EVENT_TEXT_W = 720; // 出来事の文字の最大幅。これより長いものだけ末尾を「…」にする（全文はクリックで吹き出し表示）
         const FONT_SIZE = 11.5;
         const LINE_H = 18;
 
@@ -742,9 +752,20 @@
         }
 
         // 出来事年表の全体レイアウトを計算する。
-        // 出来事は1行固定・幅も固定（はみ出す分は隠す）なので、行の高さは一定になる。
+        // 出来事は1行表示で、枠の幅は文字の長さに合わせる。
         // 同じ行（レーン）の中で、年が近い出来事どうしが重なる場合は
         // 段（サブ行）を増やして避ける（区間スケジューリングの考え方）。
+        // 出来事の表示文字列と、その枠の幅（文字の長さに合わせる）を求める。
+        // MAX_EVENT_TEXT_W を超える長いタイトルだけ、末尾を「…」で省略する。
+        function eventLabel(e) {
+            const full = e.title;
+            const tw = measureWidth(full);
+            if (tw <= MAX_EVENT_TEXT_W) return { text: full, w: tw };
+            let t = full;
+            while (t.length > 1 && measureWidth(t + "…") > MAX_EVENT_TEXT_W) t = t.slice(0, -1);
+            return { text: t + "…", w: measureWidth(t + "…") };
+        }
+
         let currentLayout = null;
         function computeLayout() {
             const boxes = [];
@@ -761,9 +782,12 @@
                 const rowRightEdge = []; // 各段の、これまでに置いた出来事の右端 x
                 items.forEach((it) => {
                     const startX = x(it.e.t);
+                    const lab = eventLabel(it.e);
+                    it.text = lab.text;
+                    it.w = 12 + lab.w + 8; // 12 = 点と文字の間隔、8 = 右側の余白
                     let row = rowRightEdge.findIndex((rightEdge) => startX >= rightEdge + BOX_GAP);
                     if (row === -1) { row = rowRightEdge.length; rowRightEdge.push(0); }
-                    rowRightEdge[row] = startX + BOX_W;
+                    rowRightEdge[row] = startX + it.w;
                     it.row = row;
                 });
 
@@ -772,7 +796,7 @@
 
                 items.forEach((it) => {
                     boxes.push({
-                        e: it.e, i: it.i,
+                        e: it.e, i: it.i, text: it.text, w: it.w,
                         x: x(it.e.t), y: cursorY + it.row * (LINE_H + ROW_GAP)
                     });
                 });
@@ -783,6 +807,9 @@
 
             // 吹き出し（クリックで開く全文表示）が年表の下端で切れないよう、必要な高さを確保する
             const needBubble = Math.min(420, DATA.events.reduce((mx, ev) => Math.max(mx, bubbleMetrics(ev).bh), 0) + 40);
+            // 右端の出来事の文字が収まるよう、必要なら横幅 W を広げる（はみ出す分は横スクロールで見る）
+            const needW = boxes.reduce((m, b) => Math.max(m, b.x + b.w), 0) + 24;
+            W = Math.max(BASE_W, Math.ceil(needW));
             currentLayout = { boxes, laneInfos, totalHeight: Math.max(cursorY + 20, needBubble) };
             return currentLayout;
         }
@@ -811,19 +838,56 @@
             return new Intl.NumberFormat("ja-JP").format(Math.round(v));
         }
 
-        // SVGの実際の横幅にあわせて、縦横比通りの高さ(px)を計算してそのまま指定する
-        function fitSvgHeight(svg, viewW, viewH) {
-            const width = svg.parentElement.clientWidth || svg.getBoundingClientRect().width;
-            if (width > 0) {
-                svg.style.height = (width * viewH / viewW) + "px";
-            }
+        // 画面上の 1 ユニット（SVG座標の1）が何pxになるか。基本幅 BASE_W が画面の枠にちょうど収まる倍率。
+        // 上段のグラフと下段の年表で同じ倍率を使うので、横に広げても位置がずれない。
+        function unitPx() {
+            const tv = document.getElementById("timelineViewport");
+            return (tv.clientWidth || tv.getBoundingClientRect().width || BASE_W) / BASE_W;
         }
 
-        // ウィンドウサイズが変わったときも高さを再計算する
-        window.addEventListener("resize", () => {
-            fitSvgHeight(document.getElementById("quantSvg"), W, Q_HEIGHT);
-            fitSvgHeight(document.getElementById("timelineSvg"), W, timelineHeight());
-        });
+        // SVGの大きさ(px)を、上の倍率で指定する。W が BASE_W より大きいときは枠より横に長くなり、横スクロールになる。
+        function fitSvgHeight(svg, viewW, viewH) {
+            const u = unitPx();
+            svg.style.width = (viewW * u) + "px";
+            svg.style.height = (viewH * u) + "px";
+        }
+
+        // 上段・下段の大きさを合わせ直し、横スクロールが必要なときだけ案内文を出す
+        function refitAll() {
+            const q = document.getElementById("quantSvg");
+            const t = document.getElementById("timelineSvg");
+            for (let pass = 0; pass < 2; pass++) { // 縦スクロールバーの出入りで幅が変わる場合に備えて2回合わせる
+                fitSvgHeight(q, W, Q_HEIGHT);
+                fitSvgHeight(t, W, timelineHeight());
+            }
+            const tv = document.getElementById("timelineViewport");
+            const hint = document.getElementById("scrollHint");
+            if (hint) hint.style.display = tv.scrollWidth > tv.clientWidth + 1 ? "block" : "none";
+            document.getElementById("quantViewport").scrollLeft = tv.scrollLeft;
+        }
+
+        // 年表を横スクロールしたら、上段のグラフも同じだけ動かす。案内文の要素もここで作る。
+        function setupHScroll() {
+            const tv = document.getElementById("timelineViewport");
+            const qv = document.getElementById("quantViewport");
+            tv.addEventListener("scroll", () => { qv.scrollLeft = tv.scrollLeft; });
+            // 上段のグラフの上でも、横方向のスクロール操作（トラックパッド等）で動かせるようにする
+            qv.addEventListener("wheel", (ev) => {
+                if (Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) {
+                    tv.scrollLeft += ev.deltaX;
+                    ev.preventDefault();
+                }
+            }, { passive: false });
+            const hint = document.createElement("div");
+            hint.id = "scrollHint";
+            hint.className = "hscroll-hint";
+            hint.textContent = "◀ 横にスクロールすると、右側の出来事も表示できます ▶";
+            hint.style.display = "none";
+            tv.after(hint);
+        }
+
+        // ウィンドウサイズが変わったときも大きさを再計算する
+        window.addEventListener("resize", refitAll);
 
         // 縦軸の最大値を、12,000,000や6,000,000のようなキリの良い数字に切り上げる
         function niceCeil(value) {
@@ -971,30 +1035,23 @@
                 laneLayer.append(hit);
             });
 
-            // 出来事：ふだんは1行だけ表示し、はみ出した部分は隠す。
+            // 出来事：1行で全文字を表示する（長すぎるものだけ末尾を「…」にする）。
             // クリックすると全文を折り返した吹き出しを開閉する。
             // ※ x,y の y は「行の上端」を表す。文字のベースラインではないので注意。
-            layout.boxes.forEach(({ e, i, x: bx, y: by }) => {
+            layout.boxes.forEach(({ e, i, x: bx, y: by, w: bw, text }) => {
                 const color = colorForMajor(e.major);
-                const text = e.title;
                 const textX = bx + 12;
                 const baselineY = by + LINE_H - 4; // 行の下寄りにベースラインを置く
                 const centerY = by + LINE_H / 2;
 
-                const clipId = `clip-${i}`;
-                const clip = el("clipPath", { id: clipId });
-                clip.append(el("rect", { x: bx, y: by, width: BOX_W, height: LINE_H }));
-                eventLayer.append(clip);
-
                 const group = el("g", { class: "eventbox", style: "cursor:pointer" });
 
                 // 見た目には何も出さない、行全体をクリックできるようにするための当たり判定
-                group.append(el("rect", { x: bx, y: by, width: BOX_W, height: LINE_H, fill: "transparent" }));
+                group.append(el("rect", { x: bx, y: by, width: bw, height: LINE_H, fill: "transparent" }));
 
                 group.append(el("circle", { cx: bx + 4, cy: centerY, r: 3, fill: color }));
 
                 const label = el("text", { x: textX, y: baselineY, class: "eventtext" }, text);
-                label.setAttribute("clip-path", `url(#${clipId})`);
                 group.append(label);
 
                 group.addEventListener("click", () => {
@@ -1563,12 +1620,15 @@
         function redraw() {
             updateCsvLinks();
             renderTpTags();
+            computeLayout(); // 先に年表のレイアウトを計算して、必要な横幅 W を決める
             drawQuant();
             drawTimeline();
+            refitAll();
             updateDetails();
         }
 
         function setupHoverGuides() {
+            setupHScroll();
             const quantSvg = document.getElementById("quantSvg");
             const timelineSvg = document.getElementById("timelineSvg");
             quantSvg.addEventListener("mousemove", (ev) => onChartHover(ev, quantSvg, "quant", Q_TOP, Q_BOTTOM));

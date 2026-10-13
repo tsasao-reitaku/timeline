@@ -1,0 +1,1727 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>定量グラフ・出来事年表（インタラクティブ）</title>
+
+    <style>
+        :root {
+            --line: #d8dee4;
+            --ink: #17202a;
+            --sub: #53606b;
+            --accent: #176d75;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            padding: 16px;
+            max-width: 1470px;
+            margin-inline: auto;
+            font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+            color: var(--ink);
+            background: #f5f7f8;
+        }
+
+        body>#wrap {
+            order: 1;
+        }
+
+        body>.details {
+            order: 2;
+        }
+
+        body>h1,
+        body>p.intro,
+        body>.toolbar,
+        body>.hint,
+        body>.tp-dialog,
+        body>#csvDialog {
+            order: 3;
+        }
+
+        h1 {
+            font-size: 20px;
+            margin: 24px 0 4px;
+        }
+
+        p.intro {
+            color: var(--sub);
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 0 0 16px;
+        }
+
+        .toolbar {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 22px 12px 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin: 0;
+        }
+
+        .toolbar button.toolbar-collapse {
+            position: absolute;
+            top: 3px;
+            right: 5px;
+            background: white;
+            border: 1px solid #9aa4ad;
+            border-radius: 4px;
+            color: #9aa4ad;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 1px 5px;
+            line-height: 1.4;
+        }
+
+        .toolbar.collapsed {
+            padding: 6px 8px;
+        }
+
+        .toolbar.collapsed>*:not(.toolbar-collapse) {
+            display: none;
+        }
+
+        .toolbar.collapsed .toolbar-collapse {
+            position: static;
+        }
+
+        .toolbar button {
+            background: var(--accent);
+            color: white;
+            border: 0;
+            border-radius: 5px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .export-menu {
+            position: relative;
+        }
+
+        .export-popup {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 20px 16px 16px;
+            min-width: 120px;
+        }
+
+        .export-popup:not([open]) {
+            display: none;
+        }
+
+        .export-popup-close {
+            position: absolute;
+            top: 2px;
+            right: 4px;
+            background: none !important;
+            border: none !important;
+            color: var(--sub) !important;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 2px 6px !important;
+        }
+
+        .export-popup button {
+            background: white;
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .tp-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .tp-heading {
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .tp-tags {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin: 6px 0;
+        }
+
+        .tp-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #fdf3e4;
+            border: 1px solid #d9b877;
+            border-radius: 999px;
+            padding: 2px 7px;
+            font-size: 10px;
+        }
+
+        .tp-tag button {
+            border: 0;
+            background: none;
+            cursor: pointer;
+            font-size: 13px;
+            line-height: 1;
+            color: #8a5a1e;
+        }
+
+        #tpMode {
+            border: 1px solid var(--accent);
+            background: white;
+            color: var(--accent);
+            border-radius: 5px;
+            padding: 4px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .hint {
+            font-size: 12px;
+            color: var(--sub);
+            margin: 8px 0;
+        }
+
+        dialog {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 18px;
+            max-width: 480px;
+        }
+
+        dialog .dialog-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 10px 0;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+
+        dialog .csv-info {
+            font-size: 11.5px;
+            color: var(--sub);
+            background: #eef2f5;
+            padding: 8px 10px;
+            border-radius: 6px;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .tp-dialog {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 8px 0;
+        }
+
+        .tp-dialog[hidden] {
+            display: none;
+        }
+
+        #wrap {
+            position: relative;
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #quantViewport {
+            border-bottom: 1px solid var(--line);
+            overflow: hidden;
+        }
+
+        #quantViewport svg,
+        #timelineViewport svg {
+            width: 100%;
+            display: block;
+        }
+
+        #timelineViewport {
+            height: 60vh;
+            min-height: 320px;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .grid {
+            stroke: #e7ebee;
+            stroke-width: 1;
+        }
+
+        .axis {
+            stroke: #b7c0c8;
+            stroke-width: 1;
+        }
+
+        .tick {
+            fill: var(--sub);
+            font-size: 11px;
+        }
+
+        .qarea {
+            fill: #9fd3d8;
+            fill-opacity: 0.5;
+        }
+
+        .qline {
+            fill: none;
+            stroke: var(--accent);
+            stroke-width: 2.5;
+        }
+
+        .turn {
+            stroke: #9b5a1e;
+            stroke-width: 1.3;
+            stroke-dasharray: 4 3;
+        }
+
+        .turnLayer .turn {
+            opacity: 0.45;
+        }
+
+        .turntext {
+            fill: #7a1f1f;
+            font-size: 11.5px;
+        }
+
+        .guideline {
+            stroke: #8a97a3;
+            stroke-width: 1;
+            stroke-dasharray: 3 3;
+            pointer-events: none;
+        }
+
+        .guidetext {
+            fill: #33414d;
+            font-size: 12px;
+            font-weight: 600;
+            pointer-events: none;
+        }
+
+        .lane-label {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .lane-label.selected {
+            text-decoration: underline;
+        }
+
+        .eventtext {
+            font-size: 11.5px;
+            fill: #17202a;
+        }
+
+        .eventtext-bold {
+            font-size: 11.5px;
+            font-weight: 700;
+            fill: #17202a;
+        }
+
+        .expandbubble rect {
+            cursor: pointer;
+        }
+
+        .expandclose {
+            font-size: 12px;
+            cursor: pointer;
+            fill: #53606b;
+        }
+
+        .expandlink {
+            font-size: 10.5px;
+            fill: var(--accent);
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        .chart-title {
+            font-size: 17px;
+            font-weight: 700;
+            fill: var(--ink);
+            cursor: text;
+        }
+
+        .title-edit {
+            position: absolute;
+            font-size: 16px;
+            font-weight: 700;
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+
+        .title-edit-fo {
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            font-size: 13px;
+            font-weight: 700;
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            padding: 2px 6px;
+        }
+
+        .tp-inline-input {
+            font-size: 12px;
+            font-weight: 400;
+            width: 220px;
+        }
+
+        @media print {
+
+            #quantViewport,
+            #timelineViewport {
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+
+            .toolbar,
+            .tp-heading,
+            #tpTags,
+            #tpMode,
+            .hint,
+            .tp-dialog {
+                display: none !important;
+            }
+        }
+
+        .details {
+            background: white;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-top: 12px;
+        }
+
+        .details h2 {
+            font-size: 14px;
+            margin: 0 0 10px;
+        }
+
+        .details .hint {
+            margin: 0;
+        }
+
+        .event-card {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            border-left: 3px solid var(--accent);
+            border-radius: 4px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .event-card .quote {
+            font-style: italic;
+            color: var(--sub);
+            background: rgba(255, 255, 255, 0.6);
+            padding: 4px 8px;
+            border-radius: 4px;
+            border-left: 2px solid #b7c0c8;
+            margin-top: 2px;
+        }
+
+        .event-card .source {
+            font-size: 11px;
+            color: var(--sub);
+        }
+
+        .event-card .source a {
+            color: var(--accent);
+        }
+
+        /* 出来事の帯やデータ要素がマウスイベントを邪魔しないようにする */
+        .event-band,
+        .data-line,
+        .chart-bg {
+            pointer-events: none;
+        }
+
+        /* マウス判定専用の透明な矩形枠 */
+        .overlay {
+            fill: none;
+            pointer-events: all;
+        }
+
+        h1,
+        p.intro,
+        .hint {
+            display: none;
+        }
+
+        body>.contact-link {
+            order: 4;
+            font-size: 12px;
+            color: var(--sub);
+            margin: 12px 0 24px;
+        }
+
+        .contact-link a {
+            color: var(--accent);
+        }
+    </style>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+
+<body>
+    <h1>定量グラフ・出来事年表（インタラクティブ）</h1>
+    <p class="intro">
+        ポケベルの加入数の推移と、関連する社会的出来事を同じ時間軸で確認できます。
+        出来事はそれぞれの行に常時テキストで表示され、年代が近いものは段を分けて
+        重ならないようにしています。行名をクリックすると、下のパネルにその行の
+        出来事が一覧表示されます。
+    </p>
+
+    <dialog id="csvDialog">
+        <h2>年表を作成</h2>
+        <div class="csv-info">
+            【定量CSVのフォーマット仕様】
+            ヘッダー: 年（必須）,値,系列名（全行同じ名前）（必須）
+            <br /><br />
+            【出来事CSVのフォーマット仕様】
+            ヘッダー: 年（必須）,大分類（必須）,小分類,出来事タイトル（必須）,詳細説明,引用文,出典,URL
+            <br /><br />
+            【作成時の注意】
+            <br />・文章内にカンマや改行が含まれるセルは、必ずセル全体をダブルクォーテーション(")で囲んでください。
+            <br />・系列名に単位を付けたい場合は「ポケベル加入数（人）」のようにカッコで囲んでください（全角・半角どちらでも構いません）。マウスオーバー時の表示にこの単位だけが使われます。
+            <br />・値の列には数字だけを入力してください（カンマ区切りの桁区切り「1,000」のような書き方は不可）。<br />・年の列は、年単位なら「2004」、月単位なら「2004-03」（「2004/3」「2004年3月」も可）の形式で入力してください。両方のCSVで同じ単位にそろえると見やすくなります。Excelでは「2004-03」が日付に自動変換されるため、年の列を先に「文字列」の書式にしてから入力してください。
+            <br />・Excelで保存する場合は「CSV UTF-8（コンマ区切り）」形式を選んでください。通常の「CSV（コンマ区切り）」で保存すると、文字化けの原因になることがあります。
+        </div>
+        <div class="dialog-row">
+            <label>定量CSV<input id="quantCsv" type="file" accept=".csv,text/csv" /></label>
+            <a id="quantTemplate" download="定量_template.csv" href="#">ひな型をダウンロード</a>
+        </div>
+        <div class="dialog-row">
+            <label>出来事CSV<input id="eventCsv" type="file" accept=".csv,text/csv" /></label>
+            <a id="eventTemplate" download="出来事_template.csv" href="#">ひな型をダウンロード</a>
+        </div>
+        <button id="csvApply" type="button">読み込む</button>
+        <button id="csvClose" type="button" class="export-popup-close">×</button>
+    </dialog>
+
+    <div class="hint">
+        行名クリック：下のパネルにその行の出来事を一覧表示 ｜ 出来事の枠クリック：出典URLがあれば開く
+        ｜ マウスオーバー：年・値を表示
+    </div>
+    <div id="tpDialog" class="tp-dialog" hidden>
+        <label>転換点ラベル<input id="tpLabel" type="text" /></label>
+        <button id="tpSave" type="button">登録</button>
+        <button id="tpCancel" type="button">キャンセル</button>
+    </div>
+
+    <div id="wrap">
+        <div class="toolbar">
+            <button id="toolbarCollapse" type="button" class="toolbar-collapse" aria-label="ツールバーを折りたたむ">－</button>
+            <button id="exportToggle" type="button">年表を書き出し</button>
+            <dialog id="exportPopup" class="export-popup">
+                <button id="exportPopupClose" type="button" class="export-popup-close">×</button>
+                <button id="exportSvg" type="button">svg</button>
+                <button id="exportPng" type="button">png</button>
+                <button id="exportPdf" type="button">pdf</button>
+            </dialog>
+            <button id="builderToggle" type="button">新規年表を作成</button>
+            <span class="tp-heading">転換点：</span>
+            <div id="tpTags" class="tp-tags" aria-live="polite"></div>
+            <button id="tpMode" type="button">転換点を追加</button>
+        </div>
+        <div id="quantViewport">
+            <svg id="quantSvg" role="img" aria-label="ポケベル加入数の推移"></svg>
+        </div>
+        <div id="timelineViewport">
+            <svg id="timelineSvg" role="img" aria-label="出来事年表"></svg>
+        </div>
+    </div>
+
+    <div class="details" id="details" aria-live="polite">
+        <h2>選択カテゴリの出来事</h2>
+        <div class="event-list">
+            <span class="hint">カテゴリ名をクリックすると、そのカテゴリの出来事が一覧表示されます。</span>
+        </div>
+    </div>
+    <p class="contact-link">
+        不具合の報告・ご要望は
+        <a href="https://docs.google.com/forms/d/e/1FAIpQLSfgOXqjmmthUUy7MpdZihqDdj_UWFPhEr4o_2L-NlsnWSUWHw/viewform?usp=sharing&ouid=112865747336020354232"
+            target="_blank" rel="noopener noreferrer">こちらのフォーム</a>
+        からお送りください。
+    </p>
+
+    <script>
+        "use strict";
+
+        // 実際のデータはCSVから読み込むため、初期値は空にしておく。
+        // (以前はここにポケベルのサンプルデータを直接書いていたが、
+        //  CSV読み込みが動くようになったので不要になった)
+        let DATA = {
+            quant: [],
+            events: [],
+            turning_points: [
+                { t: 1995, label: "加入数ピーク\n1,061万件" },
+                { t: 1997, label: "急減期\n競合サービスへ移行" }
+            ],
+            lanes: []
+        };
+
+        // 大分類ごとの色は、以前は「サービス」「政策」のようなポケベル固有の
+        // カテゴリ名に直接ひもづけて決めていたが、別のテーマのCSVを読み込んだときに
+        // 対応できないため、読み込んだデータに出てくる順に自動で色を割り当てる方式にした。
+        const CATEGORY_COLORS = [
+            "#7B61A8", "#267C8B", "#D07A28", "#C45167", "#4776B4",
+            "#6C7A3E", "#B5842B", "#4E8DBF", "#8A8F98", "#A0527A"
+        ];
+        function colorForMajor(major) {
+            const majors = [...new Set(DATA.events.map((e) => e.major))];
+            const idx = majors.indexOf(major);
+            return idx === -1 ? "#466a8a" : CATEGORY_COLORS[idx % CATEGORY_COLORS.length];
+        }
+
+        const EVENT_CSV_HEADERS = ["年（必須）", "大分類（必須）", "小分類", "出来事タイトル（必須）", "詳細説明", "引用文", "出典", "URL"];
+        const QUANT_CSV_HEADERS = ["年（必須）", "値", "系列名（全行同じ名前）（必須）"];
+
+        let chartTitle = "ポケベルの普及・衰退と社会的出来事";
+        let activeLane = null;
+        let tpMode = false;
+        let hoverT = null; // マウス位置の時刻（年の小数表現。例：2004年3月 = 2004.1667）
+        let expandedIndex = null; // クリックで全文表示中の出来事の index（一度に1つだけ）
+
+        const W = 1430;
+        const LEFT = 235;
+        const RIGHT = 1145;
+
+        const Q_TOP = 46;
+        const Q_BOTTOM = 230;
+        const Q_HEIGHT = 256;
+
+        const LANE_TOP = 16;
+        const LANE_GAP = 14;
+        const ROW_GAP = 4;
+        const BOX_GAP = 10;
+        const BOX_W = 320;
+        const FONT_SIZE = 11.5;
+        const LINE_H = 18;
+
+        // ---- 時刻の扱い ----
+        // すべての日付を「年の小数表現 t」（例：2004年3月 = 2004 + 2/12）に直して座標計算する。
+        // CSVの「年」列は 2004 / 2004-03 / 2004/3 / 2004年3月 / 2004-03-15 のどれでも読める。
+        function parseTime(raw) {
+            const s = String(raw ?? "").normalize("NFKC").trim().replace(/^(\d{1,4})年$/, "$1");
+            const m = s.match(/^(\d{1,4})\s*(?:[-\/.年]\s*(\d{1,2})\s*(?:[-\/.月]\s*(\d{1,2}))?\s*[月日]?)?$/);
+            if (!m) return null;
+            const y = +m[1];
+            const mo = m[2] ? +m[2] : null;
+            const d = m[3] ? +m[3] : null;
+            if (mo !== null && (mo < 1 || mo > 12)) return null;
+            if (d !== null && (d < 1 || d > 31)) return null;
+            const t = y + ((mo ? mo - 1 : 0) + (d ? (d - 1) / 31 : 0)) / 12;
+            const iso = mo ? `${y}-${String(mo).padStart(2, "0")}` : String(y);
+            const label = mo ? `${y}年${mo}月` : `${y}年`;
+            return { y, mo, t, iso, label };
+        }
+        // 月の情報を持つデータが1つでもあれば「月単位モード」（マウスの位置を月に吸着させる）
+        function isMonthly() {
+            return DATA.quant.some((d) => d.mo != null) || DATA.events.some((e) => e.mo != null);
+        }
+        function snapT(t) { return isMonthly() ? Math.round(t * 12) / 12 : Math.round(t); }
+        function labelOfT(t) {
+            if (!isMonthly()) return `${Math.round(t)}年`;
+            const y = Math.floor(t + 1e-9);
+            const mo = Math.min(12, Math.floor((t - y) * 12 + 1e-6) + 1);
+            return `${y}年${mo}月`;
+        }
+        function allTimes() {
+            return DATA.quant.map((d) => d.t).concat(DATA.events.map((e) => e.t)).filter(Number.isFinite).sort((a, b) => a - b);
+        }
+        function minT() { const ts = allTimes(); return ts.length ? ts[0] : 0; }
+        function maxT() { const ts = allTimes(); return ts.length ? ts[ts.length - 1] : 1; }
+        function x(t) {
+            const span = (maxT() - minT()) || 1;
+            return LEFT + ((t - minT()) / span) * (RIGHT - LEFT);
+        }
+        // 横軸の目盛り。期間が長ければ 5年/10年…刻み、月単位で6年以内なら 1〜6か月刻みにする。
+        function timeTicks() {
+            const lo = minT(), hi = maxT(), span = hi - lo;
+            const ticks = [];
+            if (!(span > 0)) return [{ t: lo, label: labelOfT(lo) }];
+            if (isMonthly() && span <= 6) {
+                const months = span * 12;
+                const step = [1, 2, 3, 6].find((st) => months / st <= 12) || 6;
+                for (let k = Math.ceil(lo * 12 - 1e-9); k <= hi * 12 + 1e-9; k++) {
+                    if (k % 12 % step === 0) ticks.push({ t: k / 12, label: `${Math.floor(k / 12)}/${k % 12 + 1}` });
+                }
+                return ticks;
+            }
+            const step = [1, 2, 5, 10, 20, 25, 50, 100].find((st) => span / st <= 8) || 100;
+            for (let y = Math.ceil(lo / step - 1e-9) * step; y <= hi + 1e-9; y += step) {
+                ticks.push({ t: y, label: String(y) });
+            }
+            if (!isMonthly()) {
+                // 両端の年も表示する。ただし近くに別の目盛りがあって文字が重なる場合は省く
+                const near = (t) => ticks.some((k) => Math.abs(x(k.t) - x(t)) < 36);
+                if (!near(lo)) ticks.unshift({ t: lo, label: String(Math.round(lo)) });
+                if (!near(hi)) ticks.push({ t: hi, label: String(Math.round(hi)) });
+            }
+            return ticks;
+        }
+
+        // テキストの実際の描画幅を測るための、非表示 canvas
+        // （マウスオーバー時にどれだけ横スクロールさせるかの計算や、
+        //   クリックで開く吹き出しの折り返しに使う）
+        const measureCtx = document.createElement("canvas").getContext("2d");
+        const FONT_FAMILY = `-apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif`;
+        function measureWidth(text, bold = false) {
+            measureCtx.font = `${bold ? "700 " : ""}${FONT_SIZE}px ${FONT_FAMILY}`;
+            return measureCtx.measureText(text).width;
+        }
+
+        // テキストを、指定した幅に収まるよう複数行に折り返す（クリック時の吹き出し用）
+        // 日本語の禁則処理つき：行頭に「。」「、」「」」などが来ない／行末に「「」「（」が来ない。
+        // 英数字の単語（E-Voting など）は途中で切らない。
+        const NO_START = "、。，．,.)）]］}｝」』】〉》〕！？!?:：;；・ー…‥ぁぃぅぇぉっゃゅょァィゥェォッャュョ々";
+        const NO_END = "(（[［{｛「『【〈《〔";
+        function wrapToWidth(text, maxWidth, bold = false) {
+            const out = [];
+            String(text).split(/\r?\n/).forEach((para) => {
+                let cur = "";
+                for (const ch of para) {
+                    const test = cur + ch;
+                    if (cur && measureWidth(test, bold) > maxWidth) {
+                        if (NO_START.includes(ch)) { cur = test; continue; } // 句読点などは行末にぶら下げる
+                        let carry = "";
+                        const word = /[A-Za-z0-9]/.test(ch) ? cur.match(/[A-Za-z0-9\-'.,]+$/) : null;
+                        if (word && word.index > 0) {
+                            carry = word[0]; cur = cur.slice(0, word.index);
+                        } else if (NO_END.includes(cur.slice(-1))) {
+                            carry = cur.slice(-1); cur = cur.slice(0, -1);
+                        }
+                        out.push(cur);
+                        cur = carry + ch;
+                    } else {
+                        cur = test;
+                    }
+                }
+                if (cur) out.push(cur);
+            });
+            return out;
+        }
+
+        // 出来事年表の全体レイアウトを計算する。
+        // 出来事は1行固定・幅も固定（はみ出す分は隠す）なので、行の高さは一定になる。
+        // 同じ行（レーン）の中で、年が近い出来事どうしが重なる場合は
+        // 段（サブ行）を増やして避ける（区間スケジューリングの考え方）。
+        let currentLayout = null;
+        function computeLayout() {
+            const boxes = [];
+            const laneInfos = [];
+            let cursorY = LANE_TOP;
+
+            DATA.lanes.forEach((lane) => {
+                const items = DATA.events
+                    .map((e, i) => ({ e, i }))
+                    .filter(({ e }) => e.lane === lane)
+                    .sort((a, b) => a.e.t - b.e.t);
+
+                // 各出来事を、空いている一番上の段に詰めていく
+                const rowRightEdge = []; // 各段の、これまでに置いた出来事の右端 x
+                items.forEach((it) => {
+                    const startX = x(it.e.t);
+                    let row = rowRightEdge.findIndex((rightEdge) => startX >= rightEdge + BOX_GAP);
+                    if (row === -1) { row = rowRightEdge.length; rowRightEdge.push(0); }
+                    rowRightEdge[row] = startX + BOX_W;
+                    it.row = row;
+                });
+
+                const rowCount = Math.max(1, rowRightEdge.length);
+                const laneHeight = rowCount * LINE_H + ROW_GAP * (rowCount - 1);
+
+                items.forEach((it) => {
+                    boxes.push({
+                        e: it.e, i: it.i,
+                        x: x(it.e.t), y: cursorY + it.row * (LINE_H + ROW_GAP)
+                    });
+                });
+
+                laneInfos.push({ lane, top: cursorY, height: laneHeight, center: cursorY + laneHeight / 2 });
+                cursorY += laneHeight + LANE_GAP;
+            });
+
+            // 吹き出し（クリックで開く全文表示）が年表の下端で切れないよう、必要な高さを確保する
+            const needBubble = Math.min(420, DATA.events.reduce((mx, ev) => Math.max(mx, bubbleMetrics(ev).bh), 0) + 40);
+            currentLayout = { boxes, laneInfos, totalHeight: Math.max(cursorY + 20, needBubble) };
+            return currentLayout;
+        }
+        function timelineHeight() {
+            return (currentLayout || computeLayout()).totalHeight;
+        }
+
+        function el(name, attrs = {}, text) {
+            const node = document.createElementNS("http://www.w3.org/2000/svg", name);
+            Object.entries(attrs).forEach(([k, v]) => node.setAttribute(k, v));
+            if (text != null) node.textContent = text;
+            return node;
+        }
+
+        // 系列名の中の（）部分を「単位」として取り出す（例："ポケベル加入数（人）" → 単位は「人」）
+        function seriesInfo() {
+            const raw = (DATA.quant[0] && DATA.quant[0].series) || "値";
+            const m = raw.match(/^(.*)[（(]([^（）()]*)[）)]\s*$/);
+            return m ? { label: raw, unit: m[2] } : { label: raw, unit: "" };
+        }
+
+        function metricValues() {
+            return DATA.quant.filter((d) => Number.isFinite(d.value));
+        }
+        function formatValue(v) {
+            return new Intl.NumberFormat("ja-JP").format(Math.round(v));
+        }
+
+        // SVGの実際の横幅にあわせて、縦横比通りの高さ(px)を計算してそのまま指定する
+        function fitSvgHeight(svg, viewW, viewH) {
+            const width = svg.parentElement.clientWidth || svg.getBoundingClientRect().width;
+            if (width > 0) {
+                svg.style.height = (width * viewH / viewW) + "px";
+            }
+        }
+
+        // ウィンドウサイズが変わったときも高さを再計算する
+        window.addEventListener("resize", () => {
+            fitSvgHeight(document.getElementById("quantSvg"), W, Q_HEIGHT);
+            fitSvgHeight(document.getElementById("timelineSvg"), W, timelineHeight());
+        });
+
+        // 縦軸の最大値を、12,000,000や6,000,000のようなキリの良い数字に切り上げる
+        function niceCeil(value) {
+            if (value <= 0) return 1;
+            const exp = Math.floor(Math.log10(value));
+            const base = Math.pow(10, exp);
+            const fraction = value / base;
+            const steps = [1, 1.2, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
+            const nice = steps.find((s) => s >= fraction) || 10;
+            return nice * base;
+        }
+
+        function drawQuant() {
+            const svg = document.getElementById("quantSvg");
+            svg.innerHTML = "";
+            svg.setAttribute("viewBox", `0 0 ${W} ${Q_HEIGHT}`);
+            fitSvgHeight(svg, W, Q_HEIGHT);
+
+            const gridLayer = el("g", { class: "gridLayer" });
+            const quantLayer = el("g", { class: "quantLayer" });
+            const turnLayer = el("g", { class: "turnLayer" });
+            const titleLayer = el("g", { class: "titleLayer" });
+            const guideLayer = el("g", { class: "guideLayer" });
+            svg.append(gridLayer, quantLayer, turnLayer, titleLayer, guideLayer);
+
+            const titleText = el("text", { x: LEFT + 10, y: 18, class: "chart-title" }, chartTitle);
+            titleText.addEventListener("click", () => startTitleEdit(titleText));
+            titleLayer.append(titleText);
+
+            const ticks = timeTicks();
+            ticks.forEach((k) => {
+                gridLayer.append(el("line", { x1: x(k.t), x2: x(k.t), y1: Q_TOP, y2: Q_BOTTOM, class: "grid" }));
+            });
+
+            svg.append(el("line", { x1: LEFT, x2: RIGHT, y1: Q_BOTTOM, y2: Q_BOTTOM, class: "axis" }));
+            svg.append(el("line", { x1: LEFT, x2: LEFT, y1: Q_TOP, y2: Q_BOTTOM, class: "axis" }));
+
+            // 横軸（年）の目盛り。定量グラフは常に画面上に固定されるため、
+            // 下段の年表の目盛りが見えていなくても、ここで年を確認できるようにする。
+            ticks.forEach((k) => {
+                svg.append(el("text", { x: x(k.t), y: Q_BOTTOM + 16, "text-anchor": "middle", class: "tick" }, k.label));
+            });
+
+            const values = metricValues();
+            const vmax = values.length ? niceCeil(Math.max(...values.map((d) => d.value)) * 1.08 || 1) : 1;
+            const yq = (v) => Q_BOTTOM - (v / vmax) * (Q_BOTTOM - Q_TOP);
+
+            [0, 0.5, 1].forEach((t) => {
+                const yy = Q_BOTTOM - t * (Q_BOTTOM - Q_TOP);
+                gridLayer.append(el("line", { x1: LEFT, x2: RIGHT, y1: yy, y2: yy, class: "grid" }));
+                svg.append(el("text", { x: LEFT - 8, y: yy + 4, "text-anchor": "end", class: "tick" }, formatValue(vmax * t)));
+            });
+
+            if (values.length) {
+                const path = values
+                    .map((d, i) => (i ? "L" : "M") + x(d.t) + "," + yq(d.value))
+                    .join(" ");
+                quantLayer.append(
+                    el("path", {
+                        d: `M${x(values[0].t)},${Q_BOTTOM} ${path.slice(1)} L${x(values[values.length - 1].t)},${Q_BOTTOM} Z`,
+                        class: "qarea"
+                    })
+                );
+                quantLayer.append(el("path", { d: path, class: "qline" }));
+            } else {
+                quantLayer.append(el("text", { x: LEFT + 8, y: Q_TOP + 22, class: "turntext" }, "定量データなし（出来事のみ表示）"));
+            }
+
+            svg.append(el("text", { x: LEFT, y: Q_TOP - 6, class: "tick" }, seriesInfo().label));
+
+            DATA.turning_points.forEach((tp, i) => {
+                const xx = x(tp.t);
+                turnLayer.append(el("line", { x1: xx, x2: xx, y1: Q_TOP, y2: Q_HEIGHT, class: "turn" }));
+                turnLayer.append(
+                    el("text", { x: xx + 4, y: Q_TOP + 14 + i * 16, class: "turntext" }, `${labelOfT(tp.t)}｜${(tp.label || "").replace("\n", " ")}`)
+                );
+            });
+
+            const clickArea = el("rect", { x: LEFT, y: Q_TOP, width: RIGHT - LEFT, height: Q_BOTTOM - Q_TOP, fill: "transparent" });
+            clickArea.addEventListener("click", (ev) => {
+                if (!tpMode) return;
+                const rect = svg.getBoundingClientRect();
+                const scaleX = W / rect.width;
+                const scaleY = svg.viewBox.baseVal.height / rect.height;
+                const localX = (ev.clientX - rect.left) * scaleX;
+                const localY = (ev.clientY - rect.top) * scaleY;
+                const tt = snapT(minT() + Math.max(0, Math.min(1, (localX - LEFT) / (RIGHT - LEFT))) * (maxT() - minT()));
+                openTurningPointDialog(tt, localX, localY);
+            });
+            svg.append(clickArea);
+        }
+
+        function drawTimeline() {
+            const svg = document.getElementById("timelineSvg");
+            svg.innerHTML = "";
+            const layout = computeLayout();
+            const H = layout.totalHeight;
+            svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+            fitSvgHeight(svg, W, H);
+
+            const gridLayer = el("g", { class: "gridLayer" });
+            const laneLayer = el("g", { class: "laneLayer" });
+            const turnLayer = el("g", { class: "turnLayer" });
+            const eventLayer = el("g", { class: "eventLayer" });
+            const guideLayer = el("g", { class: "guideLayer" });
+            svg.append(gridLayer, laneLayer, turnLayer, eventLayer, guideLayer);
+
+            const ticks = timeTicks();
+            ticks.forEach((k) => {
+                gridLayer.append(el("line", { x1: x(k.t), x2: x(k.t), y1: 0, y2: H - 30, class: "grid" }));
+            });
+
+            ticks.forEach((k) => {
+                svg.append(el("text", { x: x(k.t), y: H - 10, "text-anchor": "middle", class: "tick" }, k.label));
+            });
+
+            DATA.turning_points.forEach((tp) => {
+                const xx = x(tp.t);
+                turnLayer.append(el("line", { x1: xx, x2: xx, y1: 0, y2: H - 30, class: "turn" }));
+            });
+
+            layout.laneInfos.forEach(({ lane, top, height, center }) => {
+                const color = colorForMajor(lane.split("｜")[0]);
+                laneLayer.append(el("rect", { x: 0, y: top, width: W, height, fill: color, "fill-opacity": 0.08 }));
+                laneLayer.append(el("line", { x1: 0, x2: W, y1: top + height, y2: top + height, class: "grid" }));
+
+                const label = el(
+                    "text",
+                    {
+                        x: 8,
+                        y: center + 4,
+                        class: "lane-label" + (activeLane === lane ? " selected" : ""),
+                        fill: color
+                    },
+                    lane
+                );
+                laneLayer.append(label);
+
+                const hit = el("rect", { x: 0, y: top, width: LEFT - 5, height, fill: "transparent", cursor: "pointer" });
+                hit.addEventListener("click", () => {
+                    activeLane = activeLane === lane ? null : lane;
+                    drawTimeline();
+                    updateDetails();
+                });
+                laneLayer.append(hit);
+            });
+
+            // 出来事：ふだんは1行だけ表示し、はみ出した部分は隠す。
+            // クリックすると全文を折り返した吹き出しを開閉する。
+            // ※ x,y の y は「行の上端」を表す。文字のベースラインではないので注意。
+            layout.boxes.forEach(({ e, i, x: bx, y: by }) => {
+                const color = colorForMajor(e.major);
+                const text = e.title;
+                const textX = bx + 12;
+                const baselineY = by + LINE_H - 4; // 行の下寄りにベースラインを置く
+                const centerY = by + LINE_H / 2;
+
+                const clipId = `clip-${i}`;
+                const clip = el("clipPath", { id: clipId });
+                clip.append(el("rect", { x: bx, y: by, width: BOX_W, height: LINE_H }));
+                eventLayer.append(clip);
+
+                const group = el("g", { class: "eventbox", style: "cursor:pointer" });
+
+                // 見た目には何も出さない、行全体をクリックできるようにするための当たり判定
+                group.append(el("rect", { x: bx, y: by, width: BOX_W, height: LINE_H, fill: "transparent" }));
+
+                group.append(el("circle", { cx: bx + 4, cy: centerY, r: 3, fill: color }));
+
+                const label = el("text", { x: textX, y: baselineY, class: "eventtext" }, text);
+                label.setAttribute("clip-path", `url(#${clipId})`);
+                group.append(label);
+
+                group.addEventListener("click", () => {
+                    expandedIndex = expandedIndex === i ? null : i;
+                    renderExpanded(layout);
+                });
+
+                eventLayer.append(group);
+            });
+
+            renderExpanded(layout);
+        }
+
+        // 吹き出しの大きさ（折り返し行数・幅・高さ）を計算する。
+        // 年表全体の高さを決めるときにも使うので、描画とは別の関数にしてある。
+        function bubbleMetrics(e) {
+            // 吹き出しの幅は「年｜タイトル」（太字）の長さに合わせる（最小340・最大640）。
+            // 詳細説明・引用文・出典は、その幅に収まるよう禁則処理つきで折り返す。
+            const PAD_X = 16, PAD_T = 12, PAD_B = 12, HEAD_GAP = 4;
+            const headerText = `${e.label}｜${e.title}`;
+            const headerW = measureWidth(headerText, true) + PAD_X * 2 + 18; // 18 = ×ボタン分
+            const BW = Math.min(640, Math.max(340, headerW));
+            const innerW = BW - PAD_X * 2;
+
+            const headerLines = wrapToWidth(headerText, innerW - 18, true);
+            const bodyParts = [];
+            if (e.detail) bodyParts.push(e.detail);
+            if (e.quote) bodyParts.push(`「${e.quote}」`);
+            const bodyLines = bodyParts.flatMap((p) => wrapToWidth(p, innerW));
+            const hasSource = !!(e.source || e.url);
+            const srcLines = hasSource ? wrapToWidth(`出典：${e.source || "未入力"}`, innerW) : [];
+            const linkText = "URLを開く ↗";
+            // URLリンクは出典の最終行に収まれば同じ行、収まらなければ次の行に置く
+            const linkInline = !!e.url && srcLines.length > 0 &&
+                measureWidth(srcLines[srcLines.length - 1]) + 12 + measureWidth(linkText) <= innerW;
+            const linkOwnLine = !!e.url && !linkInline;
+            const srcCount = srcLines.length + (linkOwnLine ? 1 : 0);
+            const bh = PAD_T + headerLines.length * LINE_H + HEAD_GAP + bodyLines.length * LINE_H +
+                (hasSource ? 8 + srcCount * LINE_H : 0) + PAD_B;
+
+            return { PAD_X, PAD_T, HEAD_GAP, BW, headerLines, bodyLines, srcLines, hasSource, linkText, linkInline, linkOwnLine, bh };
+        }
+
+        // クリックで開いた出来事の全文吹き出しを表示する
+        function renderExpanded(layout) {
+            const svg = document.getElementById("timelineSvg");
+            let expandLayer = svg.querySelector(".expandLayer");
+            if (!expandLayer) {
+                expandLayer = el("g", { class: "expandLayer" });
+                svg.append(expandLayer);
+            }
+            expandLayer.innerHTML = "";
+
+            if (expandedIndex == null) return;
+            const box = layout.boxes.find((b) => b.i === expandedIndex);
+            if (!box) return;
+
+            const H = layout.totalHeight;
+            const e = box.e;
+            const color = colorForMajor(e.major);
+
+            const M = bubbleMetrics(e);
+            const { PAD_X, PAD_T, HEAD_GAP, BW, headerLines, bodyLines, srcLines, hasSource, linkText, linkInline, linkOwnLine, bh } = M;
+
+            // 吹き出しは1つしか出さないので、重なりを避ける処理は不要。
+            // 基本は出来事のすぐ下に表示するが、下に収まりきらない場合は上側に表示する。
+            let by = box.y + LINE_H + 4;
+            if (by + bh > H - 30) {
+                by = box.y - bh - 4;
+            }
+            by = Math.max(0, Math.min(H - 30 - bh, by));
+            // 右端に余白（W > RIGHT の部分）があるので、そこも使って良いようにする
+            const bx = Math.min(W - BW - 4, Math.max(LEFT, box.x));
+            const tx = bx + PAD_X;
+            const base = (n) => by + PAD_T + n * LINE_H + 13; // n行目の文字のベースライン
+
+            const group = el("g", { class: "expandbubble" });
+            group.append(el("rect", { x: bx, y: by, width: BW, height: bh, rx: 6, fill: "white" }));
+            group.append(el("rect", { x: bx, y: by, width: BW, height: bh, rx: 6, fill: color, "fill-opacity": 0.1, stroke: color, "stroke-width": 1.3 }));
+
+            let row = 0;
+            headerLines.forEach((line) => { group.append(el("text", { x: tx, y: base(row++), class: "eventtext-bold" }, line)); });
+            const bodyTop = HEAD_GAP;
+            bodyLines.forEach((line) => { group.append(el("text", { x: tx, y: base(row++) + bodyTop, class: "eventtext" }, line)); });
+
+            if (hasSource) {
+                const sepY = base(row - 1) + bodyTop + 9;
+                group.append(el("line", { x1: tx, x2: bx + BW - PAD_X, y1: sepY, y2: sepY, stroke: color, "stroke-opacity": 0.3 }));
+                srcLines.forEach((line) => { group.append(el("text", { x: tx, y: base(row++) + bodyTop + 8, class: "eventtext" }, line)); });
+                if (e.url) {
+                    const lastY = linkInline ? base(row - 1) + bodyTop + 8 : base(row++) + bodyTop + 8;
+                    const lx = linkInline ? tx + measureWidth(srcLines[srcLines.length - 1]) + 12 : tx;
+                    const link = el("text", { x: lx, y: lastY, class: "expandlink" }, linkText);
+                    link.addEventListener("click", (ev) => { ev.stopPropagation(); window.open(e.url, "_blank", "noreferrer"); });
+                    group.append(link);
+                }
+            }
+            const close = el("text", { x: bx + BW - 14, y: base(0), "text-anchor": "middle", class: "expandclose" }, "×");
+            group.append(close);
+            group.addEventListener("click", () => { expandedIndex = null; renderExpanded(layout); });
+
+            expandLayer.append(group);
+        }
+
+        function updateDetails() {
+            const details = document.getElementById("details");
+            const list = details.querySelector(".event-list");
+            list.innerHTML = "";
+            if (!activeLane) {
+                details.querySelector("h2").textContent = "選択カテゴリの出来事";
+                list.innerHTML = '<span class="hint">カテゴリ名をクリックすると、その出来事が一覧表示されます。</span>';
+                return;
+            }
+            details.querySelector("h2").textContent = activeLane + "｜出来事一覧";
+            DATA.events
+                .filter((e) => e.lane === activeLane)
+                .sort((a, b) => a.t - b.t)
+                .forEach((e) => {
+                    const card = document.createElement("div");
+                    card.className = "event-card";
+                    card.style.background = colorForMajor(e.major) + "1a";
+                    card.style.borderLeftColor = colorForMajor(e.major);
+
+                    let html = `<strong>${e.label} ｜ ${e.title}</strong>`;
+                    if (e.detail) html += `<div>${e.detail}</div>`;
+                    if (e.quote) html += `<div class="quote">“${e.quote}”</div>`;
+                    html += `<span class="source">出典：${e.source || "未入力"}${e.url ? `｜<a href="${e.url}" target="_blank" rel="noreferrer">URL</a>` : ""}</span>`;
+
+                    card.innerHTML = html;
+                    list.append(card);
+                });
+        }
+
+        function onChartHover(ev, svg, part, topBound, bottomBound) {
+            const rect = svg.getBoundingClientRect();
+            const scaleX = W / rect.width;
+            const viewBox = svg.viewBox.baseVal;
+            const scaleY = viewBox.height / rect.height;
+            const localX = (ev.clientX - rect.left) * scaleX;
+            const localY = (ev.clientY - rect.top) * scaleY;
+
+            if (localX < LEFT || localX > RIGHT) { onChartLeave(); return; }
+
+            const tt = snapT(minT() + ((localX - LEFT) / (RIGHT - LEFT)) * (maxT() - minT()));
+            hoverT = Math.max(minT(), Math.min(maxT(), tt));
+
+            drawGuide("quantSvg", part === "quant" ? localY : null, Q_TOP, Q_HEIGHT);
+            drawGuide("timelineSvg", part === "timeline" ? localY : null, 0, timelineHeight() - 30);
+        }
+
+        function onChartLeave() {
+            hoverT = null;
+            ["quantSvg", "timelineSvg"].forEach((id) => {
+                const svg = document.getElementById(id);
+                const layer = svg && svg.querySelector(".guideLayer");
+                if (layer) layer.innerHTML = "";
+            });
+        }
+
+
+        function startTitleEdit(titleTextEl) {
+            const svg = document.getElementById("quantSvg");
+            const box = titleTextEl.getBBox();
+
+            const fo = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+            fo.setAttribute("x", box.x - 4);
+            fo.setAttribute("y", box.y - 6);
+            fo.setAttribute("width", Math.max(200, box.width + 40));
+            fo.setAttribute("height", 26);
+
+            const input = document.createElement("input");
+            input.className = "title-edit-fo";
+            input.value = chartTitle;
+            fo.append(input);
+            svg.append(fo);
+            input.focus();
+            input.select();
+
+            let done = false;
+            const commit = () => {
+                if (done) return;
+                done = true;
+                chartTitle = input.value.trim() || chartTitle;
+                fo.remove();
+                drawQuant();
+            };
+            input.addEventListener("blur", commit);
+            input.addEventListener("keydown", (e) => {
+                if (e.isComposing) return;
+                if (e.key === "Enter") input.blur();
+                if (e.key === "Escape") { input.value = chartTitle; input.blur(); }
+            });
+        }
+
+        function renderTpTags() {
+            const box = document.getElementById("tpTags");
+            box.innerHTML = "";
+            DATA.turning_points.forEach((tp, i) => {
+                const tag = document.createElement("span");
+                tag.className = "tp-tag";
+                tag.textContent = `${labelOfT(tp.t)}｜${tp.label.replace("\n", " ")}`;
+                const removeBtn = document.createElement("button");
+                removeBtn.type = "button";
+                removeBtn.textContent = "×";
+                removeBtn.setAttribute("aria-label", "転換点を削除");
+                removeBtn.addEventListener("click", () => {
+                    DATA.turning_points.splice(i, 1);
+                    redraw();
+                });
+                tag.append(removeBtn);
+                box.append(tag);
+            });
+        }
+
+        function openTurningPointDialog(tt, svgX, svgY) {
+            const svg = document.getElementById("quantSvg");
+
+            const fo = document.createElementNS("http://www.w3.org/2000/svg", "foreignObject");
+            fo.setAttribute("x", svgX);
+            fo.setAttribute("y", svgY - 12);
+            fo.setAttribute("width", 220);
+            fo.setAttribute("height", 26);
+
+            const input = document.createElement("input");
+            input.className = "title-edit-fo tp-inline-input";
+            input.placeholder = `${labelOfT(tt)}のラベルを入力してEnter`;
+            fo.append(input);
+            svg.append(fo);
+            input.focus();
+
+            let done = false;
+            const commit = () => {
+                if (done) return;
+                done = true;
+                const label = input.value.trim();
+                fo.remove();
+                if (label) {
+                    DATA.turning_points.push({ t: tt, label });
+                    tpMode = false;
+                    document.getElementById("tpMode").textContent = "転換点を追加";
+                    redraw();
+                }
+            };
+            const cancel = () => {
+                if (done) return;
+                done = true;
+                fo.remove();
+            };
+
+            input.addEventListener("keydown", (ev) => {
+                if (ev.isComposing) return;
+                if (ev.key === "Enter") commit();
+                if (ev.key === "Escape") cancel();
+            });
+            input.addEventListener("blur", cancel);
+        }
+
+        /**
+ * 堅牢なCSVパース関数
+ * - 行頭の '#' コメント行および空行の自動スキップ
+ * - ダブルクォーテーション (") で囲まれたカンマ区切りセルに対応
+ */
+        function parseCustomCSV(text) {
+            const lines = text.split(/\r\n|\n/);
+            const data = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+
+                // 空行および '#' で始まるコメント行をスキップ
+                if (!line || line.startsWith('#')) {
+                    continue;
+                }
+
+                // ダブルクォーテーションを考慮したセル分割
+                const row = [];
+                let insideQuotes = false;
+                let currentCell = '';
+
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+
+                    if (char === '"') {
+                        insideQuotes = !insideQuotes;
+                    } else if (char === ',' && !insideQuotes) {
+                        row.push(currentCell.trim());
+                        currentCell = '';
+                    } else {
+                        currentCell += char;
+                    }
+                }
+                row.push(currentCell.trim());
+
+                // セルの前後のダブルクォーテーションを削除し、エスケープされた""を"に戻す
+                const cleanedRow = row.map(cell =>
+                    cell.replace(/^"|"$/g, '').replace(/""/g, '"')
+                );
+
+                data.push(cleanedRow);
+            }
+            return data;
+        }
+
+        /**
+         * 学生向けエラー表示UIバナー
+         */
+        function showCSVErrNotice(message) {
+            let notice = document.getElementById('csv-error-notice');
+            if (!notice) {
+                notice = document.createElement('div');
+                notice.id = 'csv-error-notice';
+                notice.style.cssText = `
+            position: fixed; top: 15px; left: 50%; transform: translateX(-50%);
+            background-color: #ff4d4f; color: white; padding: 12px 24px;
+            border-radius: 8px; font-weight: bold; font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); z-index: 10000;
+            display: flex; align-items: center; gap: 10px;
+        `;
+                document.body.appendChild(notice);
+            }
+            notice.innerHTML = `<span>⚠️ CSV読み込み注意: ${message}</span>`;
+            setTimeout(() => { if (notice) notice.remove(); }, 7000);
+        }
+
+        /**
+         * 外部CSVファイルを非同期取得してデータオブジェクトを生成する処理
+         */
+        async function loadExternalCSVFiles(eventCsvPath, valueCsvPath) {
+            try {
+                const [eventRes, valueRes] = await Promise.all([
+                    fetch(eventCsvPath),
+                    fetch(valueCsvPath)
+                ]);
+
+                if (!eventRes.ok) throw new Error(`出来事CSVが見つかりません (${eventRes.status})`);
+                if (!valueRes.ok) throw new Error(`定量CSVが見つかりません (${valueRes.status})`);
+
+                const eventText = await eventRes.text();
+                const valueText = await valueRes.text();
+
+                const rawEvents = parseCustomCSV(eventText);
+                const rawValues = parseCustomCSV(valueText);
+
+                if (rawEvents.length <= 1) {
+                    showCSVErrNotice("出来事CSVに有効なデータ行が含まれていません。");
+                }
+
+                return { rawEvents, rawValues };
+
+            } catch (err) {
+                console.error("CSV Load Error:", err);
+                showCSVErrNotice(err.message);
+                return null;
+            }
+        }
+
+        // CSVの中身をチェックし、問題があればエラー内容の文字列を返す（問題なければnull）
+        function validateRows(rows, type) {
+            if (!rows.length) return "データが1件も見つかりませんでした。ヘッダー行や中身を確認してください。";
+            for (let i = 0; i < rows.length; i++) {
+                const r = rows[i];
+                const year = findField(r, "年");
+                if (!year || !parseTime(year)) return `${i + 2}行目：「年」は 2004（年単位）・2004-03（月単位）のような形式で入力してください（入力値：${year || "空欄"}）。`;
+                if (type === "event") {
+                    const major = findField(r, "大分類");
+                    const title = findField(r, "出来事タイトル", "出来事", "タイトル", "名称");
+                    if (!major || !major.trim()) return `${i + 2}行目：「大分類」が入力されていません。`;
+                    if (!title || !title.trim()) return `${i + 2}行目：「出来事タイトル」が入力されていません。`;
+                } else {
+                    const series = findField(r, "系列名（全行同じ名前）", "系列名");
+                    if (!series || !series.trim()) return `${i + 2}行目：「系列名」が入力されていません。`;
+                }
+            }
+            return null;
+        }
+
+        function findField(row, ...names) {
+            for (const key of Object.keys(row)) {
+                // 全角・半角問わず カッコとその中身（例: （必須）, (15文字以内) など）をすべて除去して正規化
+                const plain = key.replace(/[（\(].*?[）\)]/g, "").trim();
+                if (names.includes(plain)) return row[key];
+            }
+            return "";
+        }
+
+        // CSVの行データ（オブジェクト配列）を、DATA.events / DATA.quant の形式に変換する。
+        // ファイル選択での読み込み・外部CSVの自動取得のどちらからも、この2関数を共通で使う。
+        function mapRowsToEvents(rows) {
+            return rows.map((r, index) => {
+                const p = parseTime(findField(r, "年")) || parseTime("1990");
+                const major = findField(r, "大分類") || "その他";
+                const minor = findField(r, "小分類");
+                const rawTitle = findField(r, "出来事タイトル", "出来事", "タイトル", "名称");
+                const title = rawTitle && rawTitle.trim() !== "" ? rawTitle.trim() : `(タイトル未設定 #${index + 1})`;
+
+                return {
+                    year: p.y, mo: p.mo, t: p.t, iso: p.iso, label: p.label,
+                    major,
+                    minor,
+                    lane: minor ? `${major}｜${minor}` : major,
+                    title,
+                    detail: findField(r, "詳細説明", "詳細", "説明") || "",
+                    quote: findField(r, "引用文", "引用") || "",
+                    source: findField(r, "出典") || "",
+                    url: findField(r, "URL", "リンク") || ""
+                };
+            });
+        }
+        function mapRowsToQuant(rows) {
+            return rows.map((r) => {
+                const p = parseTime(findField(r, "年")) || parseTime("1990");
+                return {
+                    t: p.t, mo: p.mo, iso: p.iso, label: p.label,
+                    series: findField(r, "系列名（全行同じ名前）", "系列名"),
+                    value: +findField(r, "値") || 0
+                };
+            }).sort((a, b) => a.t - b.t);
+        }
+
+        function loadCsv(file, type) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const rows = parseCSVToObjects(parseCustomCSV(reader.result));
+                if (type === "event") {
+                    DATA.events = mapRowsToEvents(rows);
+                    DATA.lanes = [...new Set(DATA.events.map((e) => e.lane))];
+                    DATA.turning_points = [];
+                } else {
+                    DATA.quant = mapRowsToQuant(rows);
+                    DATA.turning_points = [];
+                }
+                redraw();
+            };
+            reader.readAsText(file, "UTF-8");
+        }
+
+        function csvCell(v) { return `"${String(v ?? "").replace(/"/g, '""')}"`; }
+
+        function updateCsvLinks() {
+            const eventRows = DATA.events.map((e) =>
+                [e.iso, e.major, e.minor, e.title, e.detail, e.quote, e.source, e.url].map(csvCell).join(",")
+            );
+            const quantRows = DATA.quant.map((d) =>
+                [d.iso, d.value, d.series].map(csvCell).join(",")
+            );
+            const eventCsv = [EVENT_CSV_HEADERS.map(csvCell).join(","), ...eventRows].join("\n") + "\n";
+            const quantCsv = [QUANT_CSV_HEADERS.map(csvCell).join(","), ...quantRows].join("\n") + "\n";
+
+            const eventLink = document.getElementById("eventTemplate");
+            const quantLink = document.getElementById("quantTemplate");
+            eventLink.href = URL.createObjectURL(new Blob(["\ufeff" + eventCsv], { type: "text/csv;charset=utf-8" }));
+            quantLink.href = URL.createObjectURL(new Blob(["\ufeff" + quantCsv], { type: "text/csv;charset=utf-8" }));
+        }
+
+        function buildExportSvg() {
+            const quant = document.getElementById("quantSvg");
+            const timeline = document.getElementById("timelineSvg");
+            const quantH = Q_HEIGHT;
+            const timelineH = timelineHeight();
+
+            const exportSvg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            exportSvg.setAttribute("viewBox", `0 0 ${W} ${quantH + timelineH}`);
+            exportSvg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+
+            const style = document.createElementNS("http://www.w3.org/2000/svg", "style");
+            style.textContent = [...document.querySelectorAll("style")].map((s) => s.textContent).join("\n");
+            exportSvg.append(style);
+
+            const quantGroup = quant.cloneNode(true);
+            quantGroup.removeAttribute("id");
+            const quantWrapper = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            [...quantGroup.childNodes].forEach((n) => quantWrapper.append(n));
+            exportSvg.append(quantWrapper);
+
+            const timelineGroup = timeline.cloneNode(true);
+            timelineGroup.removeAttribute("id");
+            timelineGroup.querySelectorAll(".eventtext").forEach((t) => t.removeAttribute("clip-path"));
+            const timelineWrapper = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            timelineWrapper.setAttribute("transform", `translate(0, ${quantH})`);
+            [...timelineGroup.childNodes].forEach((n) => timelineWrapper.append(n));
+            exportSvg.append(timelineWrapper);
+
+            return { svg: exportSvg, width: W, height: quantH + timelineH };
+        }
+
+        function downloadBlob(name, blob) {
+            const a = document.createElement("a");
+            a.download = name;
+            a.href = URL.createObjectURL(blob);
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+        }
+
+        document.getElementById("exportSvg").addEventListener("click", () => {
+            const { svg } = buildExportSvg();
+            const source = new XMLSerializer().serializeToString(svg);
+            downloadBlob("timeline.svg", new Blob([source], { type: "image/svg+xml" }));
+        });
+
+        document.getElementById("exportPng").addEventListener("click", () => {
+            const { svg, width, height } = buildExportSvg();
+            const source = new XMLSerializer().serializeToString(svg);
+            const src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+            const img = new Image();
+            img.onload = () => {
+                const scale = 2;
+                const canvas = document.createElement("canvas");
+                canvas.width = width * scale;
+                canvas.height = height * scale;
+                const ctx = canvas.getContext("2d");
+                ctx.fillStyle = "white";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob((blob) => downloadBlob("timeline.png", blob), "image/png");
+            };
+            img.src = src;
+        });
+
+        document.getElementById("exportPdf").addEventListener("click", () => {
+            const { svg, width, height } = buildExportSvg();
+            const source = new XMLSerializer().serializeToString(svg);
+            const src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+            const img = new Image();
+            img.onload = () => {
+                const scale = 2;
+                const canvas = document.createElement("canvas");
+                canvas.width = width * scale;
+                canvas.height = height * scale;
+                canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                // ページを分けず、画像と同じ縦横比の1枚のPDFを作る
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: "portrait",
+                    unit: "px",
+                    format: [canvas.width, canvas.height]
+                });
+                pdf.addImage(canvas.toDataURL("image/png"), "PNG", 0, 0, canvas.width, canvas.height);
+                pdf.save("timeline.pdf");
+            };
+            img.src = src;
+        });
+
+        document.getElementById("toolbarCollapse").addEventListener("click", () => {
+            const toolbar = document.querySelector(".toolbar");
+            const collapsed = toolbar.classList.toggle("collapsed");
+            document.getElementById("toolbarCollapse").textContent = collapsed ? "＋" : "－";
+        });
+
+        // 「年表を書き出し」ボタンでポップアップの開閉、外側クリックで閉じる
+        document.getElementById("exportToggle").addEventListener("click", () => {
+            document.getElementById("exportPopup").showModal();
+        });
+        document.getElementById("exportPopupClose").addEventListener("click", () => {
+            document.getElementById("exportPopup").close();
+        });
+        document.getElementById("exportPopup").addEventListener("click", (ev) => {
+            if (ev.target.id === "exportPopup") document.getElementById("exportPopup").close();
+        });
+        ["exportSvg", "exportPng", "exportPdf"].forEach((id) => {
+            document.getElementById(id).addEventListener("click", () => {
+                document.getElementById("exportPopup").close();
+            });
+        });
+
+        function redraw() {
+            updateCsvLinks();
+            renderTpTags();
+            drawQuant();
+            drawTimeline();
+            updateDetails();
+        }
+
+        function setupHoverGuides() {
+            const quantSvg = document.getElementById("quantSvg");
+            const timelineSvg = document.getElementById("timelineSvg");
+            quantSvg.addEventListener("mousemove", (ev) => onChartHover(ev, quantSvg, "quant", Q_TOP, Q_BOTTOM));
+            quantSvg.addEventListener("mouseleave", onChartLeave);
+            timelineSvg.addEventListener("mousemove", (ev) => onChartHover(ev, timelineSvg, "timeline", 0, timelineHeight() - 30));
+            timelineSvg.addEventListener("mouseleave", onChartLeave);
+        }
+
+        document.getElementById("builderToggle").addEventListener("click", () => {
+            updateCsvLinks();
+            document.getElementById("csvDialog").showModal();
+        });
+        document.getElementById("csvClose").addEventListener("click", () => document.getElementById("csvDialog").close());
+
+        let eventsLoadedOnce = false;
+        let quantLoadedOnce = false;
+
+        document.getElementById("csvApply").addEventListener("click", () => {
+            const eventFile = document.getElementById("eventCsv").files[0];
+            const quantFile = document.getElementById("quantCsv").files[0];
+            if (!eventFile && !quantFile) return; // どちらも選ばれていなければ何もしない
+
+            const readRows = (file) => new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(parseCSVToObjects(parseCustomCSV(reader.result)));
+                reader.readAsText(file, "UTF-8");
+            });
+
+            Promise.all([
+                eventFile ? readRows(eventFile) : Promise.resolve(null),
+                quantFile ? readRows(quantFile) : Promise.resolve(null)
+            ]).then(([eventRows, quantRows]) => {
+                const eventError = eventRows ? validateRows(eventRows, "event") : null;
+                const quantError = quantRows ? validateRows(quantRows, "quant") : null;
+
+                if (eventError) {
+                    showCSVErrNotice(`出来事CSVに問題があります：${eventError}`);
+                    return; // 何も反映せず、これまでのデータのまま残す
+                }
+                if (quantError) {
+                    showCSVErrNotice(`定量CSVに問題があります：${quantError}`);
+                    return;
+                }
+
+                if (eventRows) {
+                    DATA.events = mapRowsToEvents(eventRows);
+                    DATA.lanes = [...new Set(DATA.events.map((e) => e.lane))];
+                    eventsLoadedOnce = true;
+                } else if (!eventsLoadedOnce) {
+                    DATA.events = [];
+                    DATA.lanes = [];
+                }
+                if (quantRows) {
+                    DATA.quant = mapRowsToQuant(quantRows);
+                    quantLoadedOnce = true;
+                } else if (!quantLoadedOnce) {
+                    DATA.quant = [];
+                }
+                DATA.turning_points = [];
+                redraw();
+                document.getElementById("csvDialog").close();
+            });
+
+        });
+
+        document.getElementById("tpMode").addEventListener("click", () => {
+            tpMode = !tpMode;
+            document.getElementById("tpMode").textContent = tpMode ? "グラフ上をクリック（入力待ち）" : "転換点を追加";
+        });
+
+        redraw();
+        setupHoverGuides();
+
+        /**
+ * 2次元配列(CSV)をヘッダー名をキーとするオブジェクト配列に変換
+ */
+        function parseCSVToObjects(rawMatrix) {
+            if (!rawMatrix || rawMatrix.length < 2) return [];
+            const headers = rawMatrix[0];
+            return rawMatrix.slice(1).map(row => {
+                const obj = {};
+                headers.forEach((header, index) => {
+                    obj[header] = row[index] !== undefined ? row[index] : '';
+                });
+                return obj;
+            });
+        }
+
+        /**
+ * 外部CSVを読み込み、DATAオブジェクトの構造へマッピングして初期化するメイン関数
+ */
+        async function initApp() {
+            // 1. 外部CSVファイルの非同期取得（ファイルが存在しない場合は初期データで起動）
+            const csvData = await loadExternalCSVFiles('出来事CSVひな型.csv', '定量CSVひな型.csv');
+            if (!csvData) return;
+
+            // 2. CSVデータをオブジェクト配列へ変換
+            const parsedEvents = parseCSVToObjects(csvData.rawEvents);
+            const parsedValues = parseCSVToObjects(csvData.rawValues);
+
+            // 3. データが存在する場合のみ、内部構造に合わせてマッピング変換して更新
+            //    （マッピングの中身は loadCsv() と共通の mapRowsToEvents / mapRowsToQuant を使う）
+            if (parsedEvents.length > 0) {
+                DATA.events = mapRowsToEvents(parsedEvents);
+                DATA.lanes = [...new Set(DATA.events.map((e) => e.lane))];
+            }
+            if (parsedValues.length > 0) {
+                DATA.quant = mapRowsToQuant(parsedValues);
+            }
+
+            // 4. 再描画を実行
+            redraw();
+        }
+
+        /**
+         * マウスに追従する時間軸ガイドラインの描画関数（NaNガード追加版）
+         */
+        function drawGuide(svgId, labelY, top, bottom) {
+            const svg = document.getElementById(svgId);
+            const layer = svg.querySelector(".guideLayer");
+            if (!layer) return;
+            layer.innerHTML = "";
+
+            // hoverT が取得できない・NaN の場合は描画をスキップ（左端固定を防止）
+            if (hoverT == null || Number.isNaN(hoverT)) return;
+
+            const xx = x(hoverT);
+            if (Number.isNaN(xx)) return; // 座標計算エラー時の安全策
+
+            layer.append(el("line", { x1: xx, x2: xx, y1: top, y2: bottom, class: "guideline" }));
+
+            if (labelY == null) return;
+
+            const values = metricValues();
+            const qTimes = values.map((d) => d.t);
+            const inRange = qTimes.length && hoverT >= Math.min(...qTimes) - 1e-9 && hoverT <= Math.max(...qTimes) + 1e-9;
+            const nearest = inRange
+                ? values.reduce((a, b) => (Math.abs(a.t - hoverT) <= Math.abs(b.t - hoverT) ? a : b))
+                : null;
+            const text = nearest
+                ? `${labelOfT(hoverT)}｜${formatValue(nearest.value)}${seriesInfo().unit}`
+                : labelOfT(hoverT);
+            // 文字がグラフの右端からはみ出さないよう、実際の文字幅で位置を決める
+            const tw = measureWidth(text, true) * 1.05;
+            const labelX = Math.max(LEFT, Math.min(RIGHT - tw, xx + 6));
+            // マウスの高さそのものだと出来事のテキストと重なりやすいので、少し上にずらす
+            const clampedY = Math.max(top + 12, Math.min(bottom - 4, labelY - 18));
+            layer.append(el("text", { x: labelX, y: clampedY, class: "guidetext" }, text));
+        }
+
+        // DOMの読み込み完了時に初期化処理を実行
+        document.addEventListener('DOMContentLoaded', initApp);
+    </script>
+</body>
+
+</html>
